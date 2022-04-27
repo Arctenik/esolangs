@@ -1,0 +1,51 @@
+
+
+:root {
+	--root-main-padding: 3.5vw;
+	--root-padding-top: 1.5vw;
+	--root-padding-top-full: var(--root-main-padding);
+	--root-padding-left: var(--root-main-padding);
+	--root-padding-right: var(--root-main-padding);
+	--root-padding-bottom: var(--root-main-padding);
+}
+
+
+html {
+	margin: 0;
+	padding: 0;
+}
+
+body, .root {
+	font-family: Arial, sans-serif;
+	padding: var(--root-padding-top) var(--root-padding-right) var(--root-padding-bottom) var(--root-padding-left);
+	margin: 0;
+}
+
+.noParent {
+	padding-top: var(--root-padding-top-full);
+}
+
+code {
+	background: #eee;
+}
+
+input[type=text] {
+	width: 10em;
+}
+
+
+.parentRef::before {
+	content: "< ";
+	font-weight: bold;
+}
+
+.parentRef {
+	margin-left: -1.5vw;
+	margin-bottom: 2em;
+}
+
+
+.error {
+	color: #e00;
+}
+

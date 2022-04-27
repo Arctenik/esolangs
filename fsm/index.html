@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>FSM simulator</title>
+		
+		<meta name="viewport" content="width=device-width">
+		
+		<link rel="icon" href="../icon.png">
+		
+		<link rel="stylesheet" href="../style.css">
+		
+		<style>
+			#machineInp {
+				width: 20em;
+				height: 10em;
+			}
+
+			#inputSepInp:placeholder-shown {
+				font-style: italic;
+			}
+
+			#outputElem {
+				white-space: pre-wrap;
+			}
+		</style>
+	</head>
+	
+	<body>
+		<div class="parentRef"><a href="../">Esolang stuff</a></div>
+		
+		A finite-state machine simulator based on <a href="https://esolangs.org/wiki/Finite-state_automaton" target="_blank">the description given on the Esolangs Wiki</a>
+		<br><br>
+		Each line should be blank, a #-prefixed comment, or a transition &ndash; a space-separated list of current state, current symbol, target symbol, and optional output string; initial state is taken to be the first state mentioned
+		<br><br>
+		Values <i>may</i> be enclosed in double quotes and/or contain certain escape sequences:
+		<code>\n</code>
+		<code>\r</code>
+		<code>\t</code>
+		<code>\u&lt;hex digits&gt;;</code>
+		<code>\&lt;any other single character&gt;</code>
+		(though unquoted values can't contain any literal whitespace)
+		<br><br>
+		See examples in <a href="https://arctenik.github.io/esolangs/fsm/">the repository</a>
+		<br><br><br>
+		Machine definition:
+		<br><br>
+		<textarea id="machineInp"></textarea>
+		<br><br>
+		Input: <input type="text" id="inputInp">
+		| Separator: <input type="text" id="inputSepInp" placeholder="None">
+		<br><br>
+		<button id="runButton">Run</button>
+		<br><br><br>
+		Output:
+		<br>
+		<div id="outputElem"></div>
+		<br><br>
+		State sequence (w/ current symbol and output):
+		<br>
+		<div id="sequenceElem"></div>
+
+
+		<script src="fsm.js"></script>
+	</body>
+</html>

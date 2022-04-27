@@ -1,0 +1,98 @@
+# takes an input string containing a section enclosed in double quotes
+# outputs the quoted section
+# only allowed non-quote characters are lowercase ascii, space, and backslash (for escapes)
+# (also technically there can be multiple quoted sections and their contents will be concatenated)
+# (and closing the quoted section is not required)
+
+nq "\\" nqesc
+nq "\"" q
+
+nqesc a nq
+nqesc b nq
+nqesc c nq
+nqesc d nq
+nqesc e nq
+nqesc f nq
+nqesc g nq
+nqesc h nq
+nqesc i nq
+nqesc j nq
+nqesc k nq
+nqesc l nq
+nqesc m nq
+nqesc n nq
+nqesc o nq
+nqesc p nq
+nqesc q nq
+nqesc r nq
+nqesc s nq
+nqesc t nq
+nqesc u nq
+nqesc v nq
+nqesc w nq
+nqesc x nq
+nqesc y nq
+nqesc z nq
+nqesc " " nq
+nqesc "\\" nq
+nqesc "\"" nq
+
+q a q a
+q b q b
+q c q c
+q d q d
+q e q e
+q f q f
+q g q g
+q h q h
+q i q i
+q j q j
+q k q k
+q l q l
+q m q m
+q n q n
+q o q o
+q p q p
+q q q q
+q r q r
+q s q s
+q t q t
+q u q u
+q v q v
+q w q w
+q x q x
+q y q y
+q z q z
+q " " q " "
+q "\\" qesc
+q "\"" nq
+
+qesc a q a
+qesc b q b
+qesc c q c
+qesc d q d
+qesc e q e
+qesc f q f
+qesc g q g
+qesc h q h
+qesc i q i
+qesc j q j
+qesc k q k
+qesc l q l
+qesc m q m
+qesc n q n
+qesc o q o
+qesc p q p
+qesc q q q
+qesc r q r
+qesc s q s
+qesc t q t
+qesc u q u
+qesc v q v
+qesc w q w
+qesc x q x
+qesc y q y
+qesc z q z
+qesc " " q " "
+qesc "\\" q "\\"
+qesc "\"" q "\""
