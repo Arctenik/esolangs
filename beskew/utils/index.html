@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Beskew utilities</title>
+		
+		<link rel="icon" href="../../icon.png">
+		
+		<link rel="stylesheet" href="../../style.css">
+		
+		<style>
+			
+			#numeralsResultElem {
+				margin-top: 0.5em;
+				word-break: break-all;
+				line-height: 1.6em;
+			}
+			
+			.numeral {
+				padding: 0.2em;
+				margin: 0 0.1em;
+				background: #ead0fd;
+				word-break: keep-all;
+			}
+			
+		</style>
+	</head>
+	
+	<body>
+		<div class="parentRef"><a href="../">Beskew interpreter</a></div>
+		
+		Some utilities for simplifying tedious formulaic conversions
+		
+		<h3>Unnesting</h3>
+		Removes nested parentheses; supports and outputs bracketed numbers
+		<br><br>
+		Code:
+		<br>
+		<textarea id="unnestInp"></textarea>
+		<br><br>
+		Result:
+		<br>
+		<textarea id="unnestResultInp"></textarea>
+		<br><br>
+		
+		<h3>Numeral conversion</h3>
+		Converts bracketed numbers to actual characters
+		<br><br>
+		<input type="checkbox" id="numeralsEnforceEndingsInp" checked> Convert input line endings to single-character (Note: unchecking this does not guarantee that line endings will remain the same when pasted into the input)
+		<br><br>
+		Code:
+		<br>
+		<textarea id="numeralsInp"></textarea>
+		<br><br>
+		Result (JSON content w/ inserted numerals marked):
+		<div id="numeralsResultElem"></div>
+		<br>
+		<a id="numeralsDlLink" download="program.bsku">Download</a>
+		<br><br>
+		
+		<h3>Reverse numeral conversion</h3>
+		Converts all non-BSK characters to bracketed numbers
+		<br><br>
+		File: <input type="file" id="renumeralsInp">
+		<br><br>
+		Result:
+		<br>
+		<textarea id="renumeralsResultInp"></textarea>
+		
+		<script src="utils.js"></script>
+	</body>
+</html>

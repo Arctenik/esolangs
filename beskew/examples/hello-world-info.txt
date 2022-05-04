@@ -1,0 +1,10 @@
+
+
+<output builder>
+(L rpx.r(S(Sp[1])(Kx)))
+S([2]B)(K(S(BB(BS(SS[0])))(KK)))
+
+
+K([13]<output builder>[1][0]Hello, world!)
+K([13](S([2]B)(K(S(BB(BS(SS[0])))(KK))))[1][0]Hello, world!)
+

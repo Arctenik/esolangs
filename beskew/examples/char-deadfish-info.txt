@@ -1,0 +1,113 @@
+
+
+Allows Deadfish-like syntax to be written within the program itself
+Outputs characters rather than numbers
+Very slow
+
+
+
+<normalize>
+(L n.n<cdr><norm list>Kn)
+S(S(S(S[1](K<cdr>))(K<norm list>))(KK))[1]
+
+<cdr> ofc is S[1](K[0])
+<norm list> = [256]<cons 1><norm bottom>
+<cons 1> = B(S(S[1][0]))K
+<norm bottom> = (L f.f(K[0])<norm tail>) = S(S[1]([2]K[0]))(K<norm tail>)
+<norm tail> = (L t.tt)(L tf.f[1](tt)) = S[1][1](B(S(S[1][0]))(BK(S[1][1])))
+
+<normalize> all together.........
+S(S(S(S[1](K(S[1](K[0]))))(K([256](B(S(S[1][0]))K)(S(S[1]([2]K[0]))(K(S[1][1](B(S(S[1][0]))(BK(S[1][1])))))))))(KK))[1]
+
+
+
+<s>
+(L gn.g([2]n))
+SB(K[2])
+
+
+
+<add output>
+(L noh.ohhn)
+B(S(BS(SS[0])))([2]K)
+
+
+
+<o>
+(L gno.gn(<add output>no))
+S(BS(BB))(K<add output>)
+S(BS(BB))(K(B(S(BS(SS[0])))([2]K)))
+
+
+
+<i>
+(L gn.g(<succ>n))
+SB(K<succ>)
+<succ> = (L nfx.f(nfx)) = SB
+so <i> in full is:
+S[1]K(SB)
+
+
+
+<pred>
+(L n.n<a>K[0][0])
+[2](SS([2]K[0]))(S(S[1](K<a>))(KK))
+
+<a> = (L rzp.rp(<b>p)) = BK(SS(K<b>))
+<b> = (L pfx.f(pfx)) = <succ> lol = SB
+
+<pred> in full:
+[2](SS([2]K[0]))(S(S[1](K(BK(SS(K(SB))))))(KK))
+
+
+
+<d>
+(L gn.g(<pred>n))
+SB(K<pred>)
+SB(K([2](SS([2]K[0]))(S(S[1](K(BK(SS(K(SB))))))(KK))))
+
+
+
+<list>
+[100]K(S(S[1](K<d>))(K<d tail>))
+<d tail> = [4]K(S(S[1](K<i>))(K<i tail>))
+<i tail> = [5]K(S(S[1](K<o>))(K<o tail>))
+<o tail> = [4]K<s>
+
+<list> with tails filled:
+[100]K(S(S[1](K<d>))(K([4]K(S(S[1](K<i>))(K([5]K(S(S[1](K<o>))(K([4]K<s>)))))))))
+[100]K(S(S[1](K(SB(K([2](SS([2]K[0]))(S(S[1](K(BK(SS(K(SB))))))(KK)))))))(K([4]K(S(S[1](K(S[1]K(SB))))(K([5]K(S(S[1](K(S(BS(BB))(K(B(S(BS(SS[0])))([2]K))))))(K([4]K(SB(K[2])))))))))))
+
+
+
+<get named command>
+(L s.s<cdr><list>K)
+S(S(S[1](K(S[1](K[0]))))(K<list>))(KK)
+S(S(S[1](K(S[1](K[0]))))(K([100]K(S(S[1](K(SB(K([2](SS([2]K[0]))(S(S[1](K(BK(SS(K(SB))))))(KK)))))))(K([4]K(S(S[1](K(S[1]K(SB))))(K([5]K(S(S[1](K(S(BS(BB))(K(B(S(BS(SS[0])))([2]K))))))(K([4]K(SB(K[2]))))))))))))))(KK)
+
+
+
+<halt>
+(L sgnoh.oh)
+[3]K[1]
+
+
+
+<get command>
+(L s.s[0][1]([7]K<get named command>)......<halt>s)
+S([10](S(BBB)(K(S(BBS)(KK))))[1][1][0][1]([7]K<get named command>)......<halt>)[1]
+S([10](S(BBB)(K(S(BBS)(KK))))[1][1][0][1]([7]K(S(S(S[1](K(S[1](K[0]))))(K([100]K(S(S[1](K(SB(K([2](SS([2]K[0]))(S(S[1](K(BK(SS(K(SB))))))(KK)))))))(K([4]K(S(S[1](K(S[1]K(SB))))(K([5]K(S(S[1](K(S(BS(BB))(K(B(S(BS(SS[0])))([2]K))))))(K([4]K(SB(K[2]))))))))))))))(KK)))......([3]K[1]))[1]
+
+
+
+<main>
+(L fnos.<get command>s(ff)(<normalize>n)o)
+S(BB(B([3](S(BBB)(K(S(BBS)(KK))))[1]<get command>)(S[1][1])))(K<normalize>)
+S(BB(B([3](S(BBB)(K(S(BBS)(KK))))[1](S([10](S(BBB)(K(S(BBS)(KK))))[1][1][0][1]([7]K(S(S(S[1](K(S[1](K[0]))))(K([100]K(S(S[1](K(SB(K([2](SS([2]K[0]))(S(S[1](K(BK(SS(K(SB))))))(KK)))))))(K([4]K(S(S[1](K(S[1]K(SB))))(K([5]K(S(S[1](K(S(BS(BB))(K(B(S(BS(SS[0])))([2]K))))))(K([4]K(SB(K[2]))))))))))))))(KK)))......([3]K[1]))[1]))(S[1][1])))(K(S(S(S(S[1](K(S[1](K[0]))))(K([256](B(S(S[1][0]))K)(S(S[1]([2]K[0]))(K(S[1][1](B(S(S[1][0]))(BK(S[1][1])))))))))(KK))[1]))
+
+
+
+<program>
+[2]K(S[1][1]<main>[0][0])
+[2]K(S[1][1](S(BB(B([3](S(BBB)(K(S(BBS)(KK))))[1](S([10](S(BBB)(K(S(BBS)(KK))))[1][1][0][1]([7]K(S(S(S[1](K(S[1](K[0]))))(K([100]K(S(S[1](K(SB(K([2](SS([2]K[0]))(S(S[1](K(BK(SS(K(SB))))))(KK)))))))(K([4]K(S(S[1](K(S[1]K(SB))))(K([5]K(S(S[1](K(S(BS(BB))(K(B(S(BS(SS[0])))([2]K))))))(K([4]K(SB(K[2]))))))))))))))(KK)))......([3]K[1]))[1]))(S[1][1])))(K(S(S(S(S[1](K(S[1](K[0]))))(K([256](B(S(S[1][0]))K)(S(S[1]([2]K[0]))(K(S[1][1](B(S(S[1][0]))(BK(S[1][1])))))))))(KK))[1])))[0][0])
+

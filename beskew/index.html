@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Beskew interpreter</title>
+		
+		<meta name="viewport" content="width=device-width">
+		
+		<link rel="icon" href="../icon.png">
+		
+		<link rel="stylesheet" href="../style.css">
+		
+		<style>
+			#maxStepsInp {
+				width: 6em;
+			}
+			
+			#outputElem {
+				white-space: pre-wrap;
+				font-family: monospace;
+			}
+		</style>
+	</head>
+	
+	<body>
+		<div class="parentRef"><a href="../">Esolang stuff</a></div>
+		
+		A (poorly-optimized) interpreter for <a href="https://esolangs.org/wiki/Beskew">Beskew</a>. The files for the example programs (which can be selected in the "program source" dropdown), along with a bit of info about them, can be found <a href="https://github.com/Arctenik/esolangs/tree/master/beskew/examples">here</a>.
+		<br><br>
+		See also: <a href="./utils">Beskew utilities</a>
+		<br><br><br>
+		Program source:
+		<select id="programInp">
+			<option value="file">File input</option>
+			<optgroup label="Examples">
+				<option value="./examples/hello-world.bsku">Hello world</option>
+				<option value="./examples/cat.bsku">Cat program</option>
+				<option value="./examples/char-deadfish.bsku">Deadfish (ish)</option>
+				<option value="./examples/hi.bsku">Hi!</option>
+				<option value="./examples/output-equivalency.bsku">Output equivalency</option>
+			</optgroup>
+		</select>
+		| <input type="file" id="fileInp">
+		<br><br>
+		<button id="runButton">Run program</button>
+		| Maximum number of steps: <input type="number" id="maxStepsInp" value="20000000" min="0" step="1000000">
+		<br>
+		<span id="errorElem" class="error"></span>
+		<br><br>
+		<input type="checkbox" id="jsonIoInp"> Treat I/O as JSON w/o enclosing quotes
+		<br><br>
+		Input:
+		<br>
+		<textarea id="inputInp"></textarea>
+		<br><br>
+		Output:
+		<br>
+		<div id="outputElem"></div>
+		
+		<script src="beskew.js"></script>
+	</body>
+</html>
