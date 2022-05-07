@@ -21,6 +21,12 @@ body, .root {
 	margin: 0;
 }
 
+ul {
+	margin: 0;
+	padding-left: 2.5em;
+	margin-top: 0.5em;
+}
+
 .noParent {
 	padding-top: var(--root-padding-top-full);
 }

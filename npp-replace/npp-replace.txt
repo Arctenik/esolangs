@@ -1,0 +1,48 @@
+
+
+programs are run by repeated application of "replace all" with notepad++ regex find/replace
+given as: [notes,] initial text, find expression, and replace expression
+
+
+
+=binary counter=
+
+0<
+
+(0<)|(>$)|(1<)|(^<)|(>1)
+?{1}1>:?{2}<:?{3}<1:?{4}1>:?{5}0>
+
+
+
+
+=rule 124=
+
+#b
+
+(a |(?<=[01]) )|((?<=[23])#(?=#))|((?<=[23]) )|(a#|(?<=[01])#|(?<=[23])#(?= |$))|((?<=[01])$)|((?<=[23])$)|([02](?=[0-3]*b))|([13](?=[0-3]*b))|([ #]+)b
+?{1}0:?{2}2:?{3}1:?{4}3:?{5}0b:?{6}1b:?{7} :?{8}#:?{9}$9\r\na$9
+
+
+
+
+=SK calculus=
+example program is converted from this:
+S(K(SKK))(K(KK))K(K(SKK))xy
+which returns x or y depending on whether the first call in the program is to S or K
+conversion just involves replacing parentheses with _-_ with a number of dashes equal to the level of nesting (with outermost parentheses having one dash)
+and then the program is prefixed with the letter a
+note: arbitrary characters *other than* abcdeSK_- can be used as non-evaluated functions (like the x and y in the example); you can also make a multi-character non-evaluated function by putting it in a group _-_like this_-_ (with of course the appropriate number of dashes for the nesting level)
+
+aS_-_K_--_SKK_--__-__-_K_--_KK_--__-_K_-_K_--_SKK_--__-_xy
+
+^aK([^_a-e]|_-_(?:[^_]|_--+_)*_-_)(?:[^_a-e]|_-_(?:[^_]|_--+_)*_-_)(.*)|^aS([^_a-e]|_-_(?:[^_]|_--+_)*_-_)([^_a-e]|_-_(?:[^_]|_--+_)*_-_)([^_a-e]|_-_(?:[^_]|_--+_)*_-_)(.*)|(b)|(-_)(?=[^b]*b)|^c([^c]+)c([^c]+)c([^c]+)c(.*)|^d_-_((?:[^_]|_--+_)*)_-_(.*)|^d(.*)|(^e)|(-_)(?=[^e]*e)|(e)
+?{1}d$1$2:?{3}b$3b$4b$5b$6:?{7}c:?{8}--_:?{9}d_-_$9$11_-__-_$10$11_-_$12:?{13}e$13e$14:?{15}a$15:?{16}d:?{17}_:?{18}
+
+=BONUS=
+converts an expression with parentheses into the above format
+
+^([^abcd]*)$|^([^()]*)b|\(([^()]*)\)(?=[^b]*b)|(b)|(-_)(?=[^c]*c)|(c)|(-_)(?=[^d]*d)|(d)
+?{1}a$1b:?{2}$2d:?{3}_-_$3_-_:?{4}c:?{5}--_:?{6}b:?{7}_:?{8}
+
+
+
