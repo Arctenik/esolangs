@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Brook interpreter</title>
+		
+		<meta name="viewport" content="width=device-width">
+		
+		<link rel="icon" href="../icon.png">
+		
+		<link rel="stylesheet" href="../style.css">
+		
+		<style>
+			#interpreterUi {
+				margin-top: 2em;
+			}
+			
+			@media all and (orientation: landscape) {
+				#interpreterUi {
+					display: flex;
+					flex-direction: row;
+				}
+				
+				#interpreterMiddleSpacer {
+					flex: 3;
+				}
+				
+				#interpreterRightSpacer {
+					flex: 7;
+				}
+				
+				#evalPanel {
+					width: 35em;
+					margin-left: 1em;
+				}
+			}
+			
+			@media all and (orientation: portrait) {
+				#evalPanel {
+					margin-top: 2em;
+				}
+			}
+			
+			#programStatusElem:not(.error) {
+				font-style: italic;
+				color: dimgray;
+			}
+			
+			#inputQueueElem {
+				margin-top: 0.5em;
+				height: 2em;
+			}
+			
+			#outputElem {
+				margin-top: 0.5em;
+				height: 3em;
+			}
+			
+			#contElem {
+				height: 3em;
+				line-height: 1.25em;
+			}
+			
+			.discardedCode::before {
+				content: "[Discarded]";
+				color: lightgray;
+			}
+			
+			.unparsedProgram {
+				color: rgba(0, 0, 0, 0.5);
+			}
+			
+			.currentCommand {
+				background: #e5fbd0;
+			}
+			
+			.emptyChar { 
+				vertical-align: bottom;
+				width: 1ch;
+				display: inline-block;
+				height: 1.25em;
+			}
+			
+			#queueElem {
+				font-family: monospace;
+				font-size: 1rem;
+			}
+			
+		</style>
+	</head>
+	
+	<body>
+		<div class="parentRef"><a href="../">Esolang stuff</a></div>
+		
+		<div>
+			A (minimally-tested) interpreter for <a href="https://esolangs.org/wiki/Brook">Brook</a>. Some notes:
+			<ul>
+				<li>"Unambiguous" code is taken to include unclosed non-zero loops, which can be executed once without ambiguity</li>
+				<li>Unmatched parentheses are assumed to be invalid syntax that's ignored; one consequence is that zero-prefixed parentheses are considered ambiguous until the program has finished being written</li>
+				<li>Reading input when no character/number is available returns 0, in analogy with the behavior of an empty queue</li>
+				<li>The continuities' programs as displayed in this interface are reconstructed from parsed code, and so may be slightly different from the actual code that's written to the continuity</li>
+			</ul>
+		</div>
+		
+		<div id="interpreterUi">
+			<div>
+				Program:
+				<br>
+				<textarea id="programInp"></textarea>
+				<br><br>
+				Input:
+				<br>
+				<textarea id="inputInp"></textarea>
+				<br><br>
+				<button id="initButton">Initialize</button>
+			</div>
+			<div id="interpreterMiddleSpacer"></div>
+			<div id="evalPanel">
+				<span id="programStatusElem">No program loaded</span>
+				<br><br>
+				Input queue:
+				<div id="inputQueueElem" class="preciseTextBox"></div>
+				<br>
+				Output:
+				<div id="outputElem" class="preciseTextBox"></div>
+				<br>
+				Timeout after: <input type="number" id="timeLimitInp" value="5" min="0" step="1"> seconds
+				| <input type="checkbox" id="discardContsInp" checked> Discard continuities
+				| <input type="checkbox" id="discardCodeInp" checked> Discard code
+				<br><br>
+				<button id="runButton">Run</button>
+				| <button id="stepContButton">Step to continuity change</button>
+				| <button id="stepButton">Step</button> by <input type="number" id="stepSizeInp" value="1" min="1">
+				<br><br>
+				View continuity: <input type="number" id="contIndexInp" value="0" min="0" max="0"> of <span id="contCountElem">0</span>
+				| <input type="checkbox" id="focusCurrentContInp" checked> Focus on current continuity
+				<br><br>
+				<div id="contElem" class="preciseTextBox"></div>
+				<br>
+				Queue: <span id="queueElem"></span>
+			</div>
+			<div id="interpreterRightSpacer"></div>
+		</div>
+		
+		<script src="brook.js"></script>
+		<script src="brook-gui.js"></script>
+	</body>
+</html>

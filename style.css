@@ -39,6 +39,10 @@ input[type=text] {
 	width: 10em;
 }
 
+input[type=number] {
+	width: 4em;
+}
+
 
 .parentRef::before {
 	content: "< ";
@@ -53,5 +57,14 @@ input[type=text] {
 
 .error {
 	color: #e00;
+}
+
+.preciseTextBox {
+	border: 1px solid lightgray;
+    padding: 0.5em;
+    overflow: auto;
+    white-space: pre;
+	font-family: monospace;
+	font-size: 1rem;
 }
 
