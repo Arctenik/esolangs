@@ -69,3 +69,34 @@ input[type=number] {
 	font-size: 1rem;
 }
 
+
+.twoPanelUi {
+	margin-top: 2em;
+}
+
+@media all and (orientation: landscape) {
+	.twoPanelUi {
+		display: flex;
+		flex-direction: row;
+	}
+	
+	.twoPanelMiddleSpacer {
+		flex: 3;
+	}
+	
+	.twoPanelRightSpacer {
+		flex: 7;
+	}
+	
+	.secondPanel {
+		width: 35em;
+		margin-left: 1em;
+	}
+}
+
+@media all and (orientation: portrait) {
+	.secondPanel {
+		margin-top: 2em;
+	}
+}
+

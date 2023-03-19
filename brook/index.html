@@ -10,35 +10,6 @@
 		<link rel="stylesheet" href="../style.css">
 		
 		<style>
-			#interpreterUi {
-				margin-top: 2em;
-			}
-			
-			@media all and (orientation: landscape) {
-				#interpreterUi {
-					display: flex;
-					flex-direction: row;
-				}
-				
-				#interpreterMiddleSpacer {
-					flex: 3;
-				}
-				
-				#interpreterRightSpacer {
-					flex: 7;
-				}
-				
-				#evalPanel {
-					width: 35em;
-					margin-left: 1em;
-				}
-			}
-			
-			@media all and (orientation: portrait) {
-				#evalPanel {
-					margin-top: 2em;
-				}
-			}
 			
 			#programStatusElem:not(.error) {
 				font-style: italic;
@@ -101,7 +72,7 @@
 			</ul>
 		</div>
 		
-		<div id="interpreterUi">
+		<div class="twoPanelUi">
 			<div>
 				Program:
 				<br>
@@ -113,8 +84,8 @@
 				<br><br>
 				<button id="initButton">Initialize</button>
 			</div>
-			<div id="interpreterMiddleSpacer"></div>
-			<div id="evalPanel">
+			<div class="twoPanelMiddleSpacer"></div>
+			<div class="secondPanel">
 				<span id="programStatusElem">No program loaded</span>
 				<br><br>
 				Input queue:
@@ -138,7 +109,7 @@
 				<br>
 				Queue: <span id="queueElem"></span>
 			</div>
-			<div id="interpreterRightSpacer"></div>
+			<div class="twoPanelRightSpacer"></div>
 		</div>
 		
 		<script src="brook.js"></script>
