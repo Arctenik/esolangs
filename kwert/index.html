@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Kwert</title>
+		
+		<meta name="viewport" content="width=device-width">
+		
+		<link rel="icon" href="../icon.png">
+		
+		<link rel="stylesheet" href="../style.css">
+	</head>
+	
+	<body>
+		<div class="parentRef"><a href="../">Esolang stuff</a></div>
+		
+		
+		<style>
+			
+			#commandIdsElem {
+				margin-top: 0.5em;
+			}
+			
+			#programOpsElem {
+				margin-top: 0.5em;
+				height: 2.5em;
+			}
+			
+			#programIdsElem {
+				margin-top: 0.5em;
+				height: 2.5em;
+			}
+			
+			#programStatusElem {
+				height: 1em;
+			}
+			
+			.currentCommand {
+				background: var(--highlight);
+			}
+			
+			.skippedCommand {
+				color: darkgray;
+			}
+			
+		</style>
+		
+		<div>
+			An interpreter for <a href="https://esolangs.org/wiki/Kwert">Kwert</a>. In addition to being displayed as code, commands are also displayed as IDs (with one ID for each unique type of command), which can potentially make it easier to visually identify them. The current command is highlighted, and adjacent skipped commands are colored gray.
+			<br><br>
+			And, of course, see also: <a href="./kwert-deflate">Kwert to DEFLATE</a>
+		</div>
+		
+		<div class="twoPanelUi">
+			<div>
+				Program:
+				<br>
+				<textarea id="programInp"></textarea>
+				<br><br>
+				<button id="initButton">Initialize</button>
+				<br><br><br>
+				Command IDs:
+				<div id="commandIdsElem" class="preciseTextBox"></div>
+			</div>
+			<div class="twoPanelMiddleSpacer"></div>
+			<div class="secondPanel">
+				Length: <span id="programLengthElem">N/A</span> commands
+				| Cycle: <span id="cycleIndexElem">N/A</span>
+				<br><br>
+				Commands (operations):
+				<div id="programOpsElem" class="preciseTextBox"></div>
+				<br>
+				Commands (IDs):
+				<div id="programIdsElem" class="preciseTextBox"></div>
+				<br><br>
+				<button id="stepButton">Step</button>
+				| <button id="cycleButton">Full cycle</button>
+				| <button id="nCyclesButton">Run</button> for <input id="cyclesInp" type="number" value="10"> cycles
+				<br><br>
+				<div id="programStatusElem"></div>
+			</div>
+			<div class="twoPanelRightSpacer"></div>
+		</div>
+		
+		
+		<script src="kwert-parser.js"></script>
+		<script src="kwert.js"></script>
+	</body>
+</html>

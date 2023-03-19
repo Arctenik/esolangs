@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Kwert to DEFLATE</title>
+		
+		<meta name="viewport" content="width=device-width">
+		
+		<link rel="icon" href="../../icon.png">
+		
+		<link rel="stylesheet" href="../../style.css">
+		
+		<style>
+		
+			#dataElem {
+				margin-top: 0.5em;
+				height: 10em;
+			}
+		
+			#commandsElem {
+				margin-top: 0.5em;
+				height: 2.5em;
+			}
+			
+			#statusElem {
+				height: 1em;
+			}
+			
+			.commandData:nth-child(odd) {
+				background: #fafafa;
+			}
+			
+			.commandData:nth-child(even) {
+				background: #eee;
+			}
+			
+			.commandData.selected {
+				background: var(--highlight-dark);
+			}
+			
+			.command:hover {
+				background: var(--highlight-light);
+			}
+		
+		</style>
+	</head>
+	
+	<body>
+		<div class="parentRef"><a href="../">Kwert</a></div>
+		
+		<div>
+			Compiles a Kwert program to raw DEFLATE data; the compiled program can be run by inflating the data, and then taking the output as the new program, with each inflation corresponding to one program cycle. (A process which can also be done on this page, either directly after compiling a program or by loading a previously-compiled/run program. Also note: The options for exporting the data will export the currently-displayed version of the data; use the "Reset to original" button to get back to the initial compiled/loaded data.)
+			<br><br>
+			Because the numbers used in DEFLATE are bounded, some commands or combinations of commands may not be able to be compiled (though this compiler is not entirely optimal, so a failure to compile doesn't necessarily mean that the program is impossible to compile).
+		</div>
+		
+		<div class="twoPanelUi">
+			<div>
+				Program:
+				<br>
+				<textarea id="programInp"></textarea>
+				<br><br>
+				<button id="compileButton">Compile</button>
+				<br><br><br>
+				Data:
+				<br><br>
+				<button id="dlButton" disabled>Download file</button> | Load file: <input id="fileInp" type="file">
+				<br><br>
+				<button id="exportBase64Button" disabled>Export</button> / <button id="loadBase64Button">Load</button> base64:
+				<br><br>
+				<textarea id="base64Inp"></textarea>
+				<br><br>
+				<div id="statusElem"></div>
+			</div>
+			<div class="twoPanelMiddleSpacer"></div>
+			<div class="secondPanel">
+				<button id="resetDataButton" disabled>Reset to original</button>
+				| <button id="inflateButton" disabled>Inflate</button>
+				| Cycle: <span id="cycleElem">N/A</span>
+				<br><br>
+				DEFLATE data (<span id="dataLengthElem">N/A</span> bytes):
+				<div id="dataElem" class="preciseTextBox"></div>
+				<br>
+				Decompiled commands (<span id="numCommandsElem">N/A</span>):
+				<div id="commandsElem" class="preciseTextBox"></div>
+			</div>
+			<div class="twoPanelRightSpacer"></div>
+		</div>
+		
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako_inflate.min.js"></script>
+		<script src="../kwert-parser.js"></script>
+		<script src="kwert-deflate.js"></script>
+	</body>
+</html>

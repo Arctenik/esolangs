@@ -8,6 +8,8 @@
 	--root-padding-right: var(--root-main-padding);
 	--root-padding-bottom: var(--root-main-padding);
 	--highlight: #ead0fd;
+	--highlight-light: #f2e0ff;
+	--highlight-dark: #e0bdf9;
 }
 
 
