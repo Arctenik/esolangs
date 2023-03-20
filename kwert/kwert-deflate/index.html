@@ -34,7 +34,7 @@
 			}
 			
 			.commandData.selected {
-				background: var(--highlight-dark);
+				background: var(--highlight-darker);
 			}
 			
 			.command:hover {
@@ -48,7 +48,9 @@
 		<div class="parentRef"><a href="../">Kwert</a></div>
 		
 		<div>
-			Compiles a Kwert program to raw DEFLATE data; the compiled program can be run by inflating the data, and then taking the output as the new program, with each inflation corresponding to one program cycle. (A process which can also be done on this page, either directly after compiling a program or by loading a previously-compiled/run program. Also note: The options for exporting the data will export the currently-displayed version of the data; use the "Reset to original" button to get back to the initial compiled/loaded data.)
+			Compiles a Kwert program to raw DEFLATE data; the compiled program can be run by inflating the data, and then taking the output as the new program, with each inflation corresponding to one program cycle.
+			<br><br>
+			The repeated inflation process can also be done on this page, either directly after compiling a program or by loading a previously-compiled/run program. In the displayed data, compiled commands are highlighted in alternating grays, and will be highlighted in color if the corresponding decompiled commands are hovered over. Also note: The options for exporting the data will export the currently-displayed version of the data; use the "Reset to original" button to get back to the initial compiled/loaded data.
 			<br><br>
 			Because the numbers used in DEFLATE are bounded, some commands or combinations of commands may not be able to be compiled (though this compiler is not entirely optimal, so a failure to compile doesn't necessarily mean that the program is impossible to compile).
 		</div>
