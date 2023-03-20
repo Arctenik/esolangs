@@ -96,18 +96,20 @@ function renderProgram() {
 		programOpsElem.appendChild(opsElem);
 		programIdsElem.appendChild(idElem);
 	}
-	const x = window.scrollX;
-	const y = window.scrollY;
-	if (program.cycleStart) {
-		programOpsElem.scrollLeft = 0;
-		programIdsElem.scrollLeft = 0;
-	} else if (program.index + program.nextSkipAmount === program.commands.length - 1) {
-		programOpsElem.scrollLeft = programOpsElem.scrollWidth;
-		programIdsElem.scrollLeft = programIdsElem.scrollWidth;
+	if (currentOpsElem) {
+		const x = window.scrollX;
+		const y = window.scrollY;
+		if (program.cycleStart) {
+			programOpsElem.scrollLeft = 0;
+			programIdsElem.scrollLeft = 0;
+		} else if (program.index + program.nextSkipAmount === program.commands.length - 1) {
+			programOpsElem.scrollLeft = programOpsElem.scrollWidth;
+			programIdsElem.scrollLeft = programIdsElem.scrollWidth;
+		}
+		currentOpsElem.scrollIntoView();
+		currentIdElem.scrollIntoView();
+		window.scrollTo(x, y);
 	}
-	currentOpsElem.scrollIntoView();
-	currentIdElem.scrollIntoView();
-	window.scrollTo(x, y);
 }
 
 
@@ -128,24 +130,28 @@ function loadProgram(code) {
 		nextSkipAmount: commands[1].skip,
 		cycleIndex: 0,
 		step() {
-			this.cycleStart = false;
-			const c = this.commands.splice(this.index, 1)[0];
-			for (const {length, distance} of c.copies) {
-				if (distance > this.index) throw new Error("Distance out of range");
-				for (let i = this.index - distance, j = 0; j < length; i++, j++) {
-					this.commands.splice(this.index, 0, this.commands[i]);
-					this.index++;
+			if (this.commands.length > 1) {
+				this.cycleStart = false;
+				const c = this.commands.splice(this.index, 1)[0];
+				for (const {length, distance} of c.copies) {
+					if (distance > this.index) throw new Error("Distance out of range");
+					for (let i = this.index - distance, j = 0; j < length; i++, j++) {
+						this.commands.splice(this.index, 0, this.commands[i]);
+						this.index++;
+					}
 				}
-			}
-			this.index += c.skip;
-			if (this.index > this.commands.length) throw new Error("Skip length out of range");
-			if (this.index === this.commands.length) {
-				this.index = 1;
-				this.cycleStart = true;
+				this.index += c.skip;
+				if (this.index > this.commands.length) throw new Error("Skip length out of range");
+				if (this.index === this.commands.length) {
+					this.index = 1;
+					this.cycleStart = true;
+					this.cycleIndex++;
+				}
+				this.prevSkipAmount = this.nextSkipAmount;
+				this.nextSkipAmount = this.commands[this.index]?.skip || 0;
+			} else {
 				this.cycleIndex++;
 			}
-			this.prevSkipAmount = this.nextSkipAmount;
-			this.nextSkipAmount = this.commands[this.index]?.skip || 0;
 		},
 		cycle() {
 			if (this.commands.length > 1) {
