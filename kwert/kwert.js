@@ -72,13 +72,14 @@ function clearStatus() {
 function renderProgram() {
 	programLengthElem.textContent = program.commands.length;
 	cycleIndexElem.textContent = program.cycleIndex;
-	const prevSkipStart = program.index === 1 ? program.commands.length - program.prevSkipAmount : program.index - program.prevSkipAmount;
-	const nextSkipStart = program.index + 1;
 	programOpsElem.innerHTML = "";
 	programIdsElem.innerHTML = "";
 	let currentOpsElem;
 	let currentIdElem;
+	const skipRanges = program.getFutureSkipRanges();
+	let skipRangeIndex = 0;
 	for (const [i, c] of program.commands.entries()) {
+		if (skipRanges[skipRangeIndex]?.[1] < i) skipRangeIndex++;
 		if (i) programIdsElem.insertAdjacentText("beforeend", program.idSeparator);
 		const opsElem = document.createElement("span");
 		const idElem = document.createElement("span");
@@ -89,9 +90,13 @@ function renderProgram() {
 			idElem.classList.add("currentCommand");
 			currentOpsElem = opsElem;
 			currentIdElem = idElem;
-		} else if ((i === 0 && (program.index === 1 || program.index + program.nextSkipAmount === program.commands.length - 1)) || (prevSkipStart <= i && i < prevSkipStart + program.prevSkipAmount) || (nextSkipStart <= i && i < nextSkipStart + program.nextSkipAmount)) {
+		} else if (i === 0 || (skipRanges[skipRangeIndex]?.[0] <= i && i < skipRanges[skipRangeIndex]?.[1])) {
 			opsElem.classList.add("skippedCommand");
 			idElem.classList.add("skippedCommand");
+		}
+		if (program.insertStart <= i && i < program.insertEnd) {
+			opsElem.classList.add("insertedCommand");
+			idElem.classList.add("insertedCommand");
 		}
 		programOpsElem.appendChild(opsElem);
 		programIdsElem.appendChild(idElem);
@@ -126,10 +131,13 @@ function loadProgram(code) {
 		commands,
 		index: 1,
 		cycleStart: true,
-		prevSkipAmount: 0,
-		nextSkipAmount: commands[1].skip,
+		//prevSkipAmount: 0,
+		//nextSkipAmount: commands[1].skip,
+		insertStart: null,
+		insertEnd: null,
 		cycleIndex: 0,
 		step() {
+			this.insertStart = this.index;
 			if (this.commands.length > 1) {
 				this.cycleStart = false;
 				const c = this.commands.splice(this.index, 1)[0];
@@ -140,6 +148,7 @@ function loadProgram(code) {
 						this.index++;
 					}
 				}
+				this.insertEnd = this.index;
 				this.index += c.skip;
 				if (this.index > this.commands.length) throw new Error("Skip length out of range");
 				if (this.index === this.commands.length) {
@@ -147,9 +156,10 @@ function loadProgram(code) {
 					this.cycleStart = true;
 					this.cycleIndex++;
 				}
-				this.prevSkipAmount = this.nextSkipAmount;
-				this.nextSkipAmount = this.commands[this.index]?.skip || 0;
+				//this.prevSkipAmount = this.nextSkipAmount;
+				//this.nextSkipAmount = this.commands[this.index]?.skip || 0;
 			} else {
+				this.insertEnd = this.index;
 				this.cycleIndex++;
 			}
 		},
@@ -177,6 +187,19 @@ function loadProgram(code) {
 		stringifyId(x) {
 			if (typeof x !== "number") x = x.id;
 			return commandTypes.length > 36 ? x.toString().padStart(decimalIdLength, "0") : x.toString(commandTypes.length);
+		},
+		getFutureSkipRanges() {
+			const result = [];
+			for (let i = this.index; i < this.commands.length; ) {
+				const {skip} = this.commands[i];
+				i++;
+				if (skip) {
+					const start = i;
+					i += skip;
+					result.push([start, i]);
+				}
+			}
+			return result;
 		}
 	};
 }
