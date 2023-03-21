@@ -44,10 +44,9 @@ function parseKwert(code) { // uses the same object for commands with the same p
 				i++;
 				if (sections[i][0] !== "command") throw new Error("Missing command after new ID in section at " + startIndex);
 				const command = parseCommand(...sections[i].slice(1));
-				if (!command.id) {
-					command.id = ids[0];
-					idlessCommands.delete(command);
-				}
+				if (command.id) throw new Error("ID " + JSON.stringify(command.id) + " assigned to command with existing ID");
+				command.id = ids[0];
+				idlessCommands.delete(command);
 				commandsById[ids[0]] = command;
 			} else {
 				for (const id of ids) {
