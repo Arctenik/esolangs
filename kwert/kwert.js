@@ -20,7 +20,7 @@ initButton.addEventListener("click", () => {
 		clearStatus();
 		program = loadProgram(programInp.value);
 		commandIdsElem.textContent = program.commandTypes.map(c => {
-			return  program.stringifyId(c) + " " + program.stringifyCommand(c);
+			return  "` " + c.id + " " + program.stringifyCommand(c);
 		}).join("\n");
 		renderProgram();
 	} catch(e) {
@@ -73,7 +73,7 @@ function renderProgram() {
 	programLengthElem.textContent = program.commands.length;
 	cycleIndexElem.textContent = program.cycleIndex;
 	programOpsElem.innerHTML = "";
-	programIdsElem.innerHTML = "";
+	programIdsElem.innerHTML = '<span class="skippedCommand">`</span>';
 	let currentOpsElem;
 	let currentIdElem;
 	const skipRanges = program.getFutureSkipRanges();
@@ -84,7 +84,7 @@ function renderProgram() {
 		const opsElem = document.createElement("span");
 		const idElem = document.createElement("span");
 		opsElem.textContent = program.stringifyCommand(c);
-		idElem.textContent = program.stringifyId(c);
+		idElem.textContent = c.id;
 		if (i === program.index) {
 			opsElem.classList.add("currentCommand");
 			idElem.classList.add("currentCommand");
@@ -120,14 +120,10 @@ function renderProgram() {
 
 function loadProgram(code) {
 	const commands = parseKwert(code);
-	const commandTypes = [];
-	for (const c of commands) {
-		if (!commandTypes.includes(c)) commandTypes.push(c);
-	}
-	const decimalIdLength = (commandTypes.length - 1).toString().length;
+	const commandTypes = Array.from(new Set(commands));
 	return {
 		commandTypes,
-		idSeparator: commandTypes.length > 36 ? " " : "",
+		idSeparator: commands[0].id.length === 1 ? "" : " ",
 		commands,
 		index: 1,
 		cycleStart: true,
@@ -179,14 +175,10 @@ function loadProgram(code) {
 			return this.commands.map(c => this.stringifyCommand(c)).join("");
 		},
 		toIdString() {
-			return this.commands.map(c => this.stringifyId(c)).join(this.idSeparator);
+			return this.commands.map(c => c.id).join(this.idSeparator);
 		},
 		stringifyCommand(c) {
 			return "[" + (c.copies.length || c.skip ? c.copies.map(({length, distance}) => length + " " + distance).join(",") : "") + (c.skip ? ";" + c.skip : "") + "]";
-		},
-		stringifyId(x) {
-			if (typeof x !== "number") x = x.id;
-			return commandTypes.length > 36 ? x.toString().padStart(decimalIdLength, "0") : x.toString(commandTypes.length);
 		},
 		getFutureSkipRanges() {
 			const result = [];
