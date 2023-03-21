@@ -12,6 +12,7 @@ const inflateButton = document.getElementById("inflateButton");
 const cycleElem = document.getElementById("cycleElem");
 const dataElem = document.getElementById("dataElem");
 const dataLengthElem = document.getElementById("dataLengthElem");
+const commandLengthElem = document.getElementById("commandLengthElem");
 const commandsElem = document.getElementById("commandsElem");
 const numCommandsElem = document.getElementById("numCommandsElem");
 
@@ -128,6 +129,7 @@ function loadData(bytes, initial = true) {
 function showData() {
 	cycleElem.textContent = currentCycle;
 	dataLengthElem.textContent = currentData.length;
+	commandLengthElem.textContent = dataInfo.commandLength;
 	numCommandsElem.textContent = dataInfo.commands.length;
 	dataElem.innerHTML = "";
 	commandsElem.innerHTML = "";
