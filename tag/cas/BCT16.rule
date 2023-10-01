@@ -1,6 +1,6 @@
-@RULE BCT
+@RULE BCT16
 Example - conversion of esolang wiki's "simple illustration" program (10 11 11 0 11 10 0 11 10 11 0 with starting data 1):
-x = 60, y = 1, rule = BCT
+x = 60, y = 1, rule = BCT16
 2J2.A2.A2.E2.G2.F2.G2.E2.F2.G2.E2.G2.G2.FB.A5.D2.A2.A2.2M!
 
 @TABLE
