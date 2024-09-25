@@ -1,0 +1,27 @@
+* : 2 [
+  A _
+  B _
+  P 0
+  Q 0
+  R 0
+  _ *
+]
+x :: x
+_ : 3 [x A; 0 A; 1 B]
+0 : 2 [x P; 0 P; 1 Q]
+1 : 2 [x Q; 0 Q; 1 R]
+A :: _
+B :: _
+P : 1 [A 0; B 0]
+Q : 1 [A 1; B 1]
+R : 1 [A 1; B 0]
+
+# the pattern should always have a 0 on the right
+
+xxx_1_0*
+
+# when compiled to Kwert, every 6 cycles corresponds to one generation of the cellular automaton
+# a 0 cell can be identified by the command sequence `p__0 pcar` and a 1 cell by `p__1 pcar`
+# when further compiled to DEFLATE, those become, respectively, these two byte sequences:
+# 22 d0 55 24 90 c7 46 aa 34 81 62 8f 40 b9 46 a0 5c 23 50 dc 03 04 10 40 00 01 00 00 00 ff ff 22 10 df 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 00 ef 05 10 fa
+# 22 d0 17 24 90 c7 46 aa 34 81 72 8d 40 c1 45 a0 e0 22 50 dc 03 04 10 40 00 01 00 00 00 ff ff 22 10 df 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 00 ef 05 10 fa
