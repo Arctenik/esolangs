@@ -6,7 +6,7 @@ function parseKwert(code) { // uses the same object for commands with the same p
 	let match;
 	
 	while (match = sectionsExpr.exec(code)) {
-		if (match[1]) sections.push(["command", match.index + 1, match.index + 1 + match[1].length]);
+		if (typeof match[1] === "string") sections.push(["command", match.index + 1, match.index + 1 + match[1].length]);
 		else if (match[2]) sections.push(["ids", match.index + 1, match.index + 1 + match[2].length]);
 		else throw new Error("Invalid syntax at " + (match.index + 1));
 	}
