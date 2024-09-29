@@ -91,18 +91,32 @@ resetDataButton.addEventListener("click", () => {
 });
 
 inflateButton.addEventListener("click", () => {
+	if (!currentData) return;
+	let inflated;
+	try {
+		inflated = pako.inflateRaw(currentData);
+	} catch(e) {
+		const s = String(e);
+		showError(
+			e,
+			s === "invalid block type"
+				? `${s} (probably a halt)`
+				: `${s} (possibly a halt?)`
+		);
+		return;
+	}
 	try {
 		currentCycle++;
-		loadData(pako.inflateRaw(currentData), false);
+		loadData(inflated, false);
 	} catch(e) {
 		showError(e);
 	}
 });
 
-function showError(e) {
+function showError(e, message = e) {
 	console.error(e);
 	clearStatus();
-	statusElem.textContent = e;
+	statusElem.textContent = message;
 	statusElem.classList.add("error");
 }
 
@@ -138,8 +152,7 @@ function showData() {
 	while (i < dataInfo.commandIndices[0]) {
 		addByte();
 	}
-	for (const [i, c] of dataInfo.commands.entries()) {
-		const c = dataInfo.commands[i];
+	for (const c of dataInfo.commands) {
 		const commandDataElem = currentDataElem = document.createElement("span");
 		commandDataElem.classList.add("commandData");
 		dataElem.appendChild(commandDataElem);
@@ -187,6 +200,7 @@ function showData() {
 }
 
 function stringifyCommand(c) {
+	if (c.halt) return "[$]";
 	return "[" + (c.copies.length || c.skip ? c.copies.map(({length, distance}) => length + " " + distance).join(",") : "") + (c.skip ? ";" + c.skip : "") + "]";
 }
 
@@ -321,20 +335,30 @@ function getDeflateQuineBase(finalBeginning) {
 }
 
 function convertCommandTypes(commands) {
-	commands = Array.from(new Set(commands)); // it's assumed that commands with the same parameters will be the same object
+	let haltCommand = null;
+	// it's assumed that commands with the same parameters will be the same object
+	commands = Array.from(new Set(commands)).filter(c => {
+		if (c.halt) {
+			haltCommand = c;
+			return false;
+		}
+		return true;
+	});
 	
 	let bitsEstimate = 0;
 	for (const c of commands) {
-		bitsEstimate = Math.max(bitsEstimate, c.copies.length * 12 + 10);
+		bitsEstimate = Math.max(bitsEstimate, c.copies.length * 12 + 10); // minimum number of bits for a fixed-codes block with that many copies
 	}
 	
-	const bytesEstimate = Math.ceil((bitsEstimate + 3)/8) + 4;
+	const bytesEstimate = Math.ceil((bitsEstimate + 3)/8) + 4; // including the literal block? specifically the skips one i guess
 	
+	// get version with padding literal block(?)
 	const byteAlignedInfo = getCommandBases(bytesEstimate, commands, 5);
 	extendBitLengths(byteAlignedInfo, getBasisBitLength(byteAlignedInfo.maxLengthCommand));
 	addExtraBytes(byteAlignedInfo);
 	const byteAlignedLength = getFinalLength(byteAlignedInfo.genericCommand, 5);
 	
+	// get version with only compressed block padding(?)
 	let info = getCommandBases(bytesEstimate, commands);
 	let length = getFinalLength(info.genericCommand);
 	while (getFinalLength(info.minLengthCommand) < length && length < byteAlignedLength) {
@@ -350,9 +374,10 @@ function convertCommandTypes(commands) {
 	if (byteAlignedLength <= length) {
 		extendBitLengths(byteAlignedInfo, getBasisBitLength(byteAlignedInfo.genericCommand));
 		info = byteAlignedInfo;
+		length = getFinalLength(byteAlignedInfo.genericCommand, 5); // hopefully this is correct lol. otherwise the halt command will have issues
 	}
 	
-	return Object.fromEntries(commands.map(c => {
+	const result = Object.fromEntries(commands.map(c => {
 		const {basis, basisBitsLeft: bitsLeft} = info.commands[c.id];
 		const bytes = basis.slice();
 		addBits(0b000, 3, bytes, bitsLeft);
@@ -361,6 +386,15 @@ function convertCommandTypes(commands) {
 		bytes.push(...makeUncompressedLengths(skipLength));
 		return [c.id, bytes];
 	}));
+	
+	if (haltCommand) {
+		const haltBytes = new Array(length).fill(0);
+		haltBytes[0] = 0b00000110;
+		haltBytes[haltBytes.length - 1] = 1;
+		result[haltCommand.id] = haltBytes;
+	}
+	
+	return result;
 }
 
 function addExtraBytes(info) {
@@ -539,6 +573,13 @@ function decompile(bytes) {
 	while (i < bytes.length) {
 		if (onEmptyUncompressed()) {
 			return {commands, commandIndices, commandLength};
+		} else if (onErrorBlock()) {
+			const commandStart = i;
+			i += commandLength;
+			if (i < bytes.length) {
+				commands.push({halt: true});
+				commandIndices.push(commandStart);
+			}
 		} else {
 			const commandStart = i;
 			const copies = parseCopies();
@@ -637,6 +678,10 @@ function decompile(bytes) {
 	
 	function onEmptyUncompressed() {
 		return bytes[i] === 0 && bytes[i + 1] === 0 && bytes[i + 2] === 0 && bytes[i + 3] === 255 && bytes[i + 4] === 255;
+	}
+	
+	function onErrorBlock() {
+		return (bytes[i] & 0b110) === 0b110;
 	}
 }
 

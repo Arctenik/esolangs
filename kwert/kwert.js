@@ -56,6 +56,11 @@ nCyclesButton.addEventListener("click", () => {
 });
 
 
+function showMessage(m) {
+	clearStatus();
+	programStatusElem.textContent = m;
+}
+
 function showError(e) {
 	console.error(e);
 	clearStatus();
@@ -72,6 +77,14 @@ function clearStatus() {
 function renderProgram() {
 	programLengthElem.textContent = program.commands.length;
 	cycleIndexElem.textContent = program.cycleIndex;
+	if (program.halted) {
+		showMessage("Program has halted");
+	  programOpsElem.classList.add("halted");
+	  programIdsElem.classList.add("halted");
+	} else {
+	  programOpsElem.classList.remove("halted");
+	  programIdsElem.classList.remove("halted");
+	}
 	programOpsElem.innerHTML = "";
 	programIdsElem.innerHTML = '<span class="skippedCommand">`</span>';
 	let currentOpsElem;
@@ -125,18 +138,28 @@ function loadProgram(code) {
 		commandTypes,
 		idSeparator: commands[0].id.length === 1 ? "" : " ",
 		commands,
+		cycleInitialCommands: commands.slice(),
+		initialCommandsIndex: 1,
+		halted: false,
 		index: 1,
 		cycleStart: true,
-		//prevSkipAmount: 0,
-		//nextSkipAmount: commands[1].skip,
 		insertStart: null,
 		insertEnd: null,
 		cycleIndex: 0,
 		step() {
+			if (this.halted) return;
 			this.insertStart = this.index;
 			if (this.commands.length > 1) {
 				this.cycleStart = false;
 				const c = this.commands.splice(this.index, 1)[0];
+				if (c.halt) {
+					this.commands.splice(this.index, 0, c);
+					this.insertEnd = this.index;
+					this.halted = true;
+					this.commands = this.cycleInitialCommands;
+					this.index = this.initialCommandsIndex;
+					return;
+				}
 				for (const {length, distance} of c.copies) {
 					if (distance > this.index) throw new Error("Distance out of range");
 					for (let i = this.index - distance, j = 0; j < length; i++, j++) {
@@ -146,27 +169,28 @@ function loadProgram(code) {
 				}
 				this.insertEnd = this.index;
 				this.index += c.skip;
+				this.initialCommandsIndex += 1 + c.skip;
 				if (this.index > this.commands.length) throw new Error("Skip length out of range");
 				if (this.index === this.commands.length) {
 					this.index = 1;
 					this.cycleStart = true;
+					this.cycleInitialCommands = this.commands.slice();
+					this.initialCommandsIndex = 1;
 					this.cycleIndex++;
 				}
-				//this.prevSkipAmount = this.nextSkipAmount;
-				//this.nextSkipAmount = this.commands[this.index]?.skip || 0;
 			} else {
 				this.insertEnd = this.index;
 				this.cycleIndex++;
 			}
 		},
 		cycle() {
-			if (this.commands.length > 1) {
+			if (this.commands.length > 1 && !this.halted) {
 				this.step();
-				while (!this.cycleStart) this.step();
+				while (!this.cycleStart && !this.halted) this.step();
 			}
 		},
 		cycles(n = 1) {
-			while (n > 0 && this.commands.length > 1) {
+			while (n > 0 && this.commands.length > 1 && !this.halted) {
 				this.cycle();
 				n--;
 			}
@@ -178,6 +202,7 @@ function loadProgram(code) {
 			return this.commands.map(c => c.id).join(this.idSeparator);
 		},
 		stringifyCommand(c) {
+			if (c.halt) return "[$]";
 			return "[" + (c.copies.length || c.skip ? c.copies.map(({length, distance}) => length + " " + distance).join(",") : "") + (c.skip ? ";" + c.skip : "") + "]";
 		},
 		getFutureSkipRanges() {

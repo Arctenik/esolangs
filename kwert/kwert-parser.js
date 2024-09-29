@@ -11,6 +11,7 @@ function parseKwert(code) { // uses the same object for commands with the same p
 		else throw new Error("Invalid syntax at " + (match.index + 1));
 	}
 	
+	const HALT_COMMAND = {halt: true};
 	const commands = [];
 	const commandsByParams = {};
 	const commandsById = {};
@@ -22,7 +23,7 @@ function parseKwert(code) { // uses the same object for commands with the same p
 		if (type === "command") {
 			const command = parseCommand(startIndex, endIndex);
 			commands.push(command);
-			idlessCommands.add(command);
+			if (!command.id) idlessCommands.add(command);
 		} else {
 			const content = code.substring(startIndex, endIndex).trim();
 			if (!content) throw new Error("Empty IDs section at " + startIndex);
@@ -42,7 +43,7 @@ function parseKwert(code) { // uses the same object for commands with the same p
 			}).flat();
 			if (ids.length === 1 && !commandsById[ids[0]]) {
 				i++;
-				if (sections[i][0] !== "command") throw new Error("Missing command after new ID in section at " + startIndex);
+				if (sections[i]?.[0] !== "command") throw new Error("Missing command after new ID in section at " + startIndex);
 				const command = parseCommand(...sections[i].slice(1));
 				if (command.id) throw new Error("ID " + JSON.stringify(command.id) + " assigned to command with existing ID");
 				command.id = ids[0];
@@ -64,8 +65,19 @@ function parseKwert(code) { // uses the same object for commands with the same p
 	let idString;
 	
 	for (const command of idlessCommands) {
-		while (commandsById[idString = (nextId++).toString(36).padStart(idLength, "0")]) {};
-		command.id = idString;
+		if (command === HALT_COMMAND) continue;
+		command.id = getNextId();
+		commandsById[command.id] = command;
+	}
+	
+	if (idlessCommands.has(HALT_COMMAND)) {
+		const defaultHaltId = "$".repeat(idString.length);
+		if (Object.hasOwn(commandsById, defaultHaltId)) {
+			HALT_COMMAND.id = getNextId();
+		} else {
+			HALT_COMMAND.id = defaultHaltId;
+		}
+		commandsById[HALT_COMMAND.id] = HALT_COMMAND;
 	}
 	
 	if (idString && idString.length > idLength) {
@@ -81,8 +93,15 @@ function parseKwert(code) { // uses the same object for commands with the same p
 	return commands;
 	
 	
+	function getNextId() {
+		while (Object.hasOwn(commandsById, idString = (nextId++).toString(36).padStart(idLength, "0"))) {};
+		return idString;
+	}
+	
 	function parseCommand(startIndex, endIndex) {
-		const parts = code.substring(startIndex, endIndex).trim().split(/\s*;\s*/);
+		const content = code.substring(startIndex, endIndex).trim();
+		if (content === "$") return HALT_COMMAND;
+		const parts = content.split(/\s*;\s*/);
 		if (parts.length > 2) badCommand(startIndex);
 		const copies = parts[0].split(/\s*,\s*/).map((copy, i, arr) => {
 			if (!copy) {

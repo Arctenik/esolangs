@@ -1,0 +1,57 @@
+# left character of a symbol represents stationary data
+# right character represents right-moving data
+
+** : 1 [
+  ** **
+  1_ **
+  11 1_
+  -_ **
+  ~_ **
+  ~1 1_
+  1~ -_
+]
+__ :: __
+1_ : 1 [
+  1_ 1_
+  __ x1
+  x1 11
+  11 11
+  ~1 11
+  1~ 1~
+  _~ 1~
+]
+11 : 1 [
+  x_ x1
+  x1 11
+  11 11
+  ~1 11
+  _~ 1~
+  1~ 1~
+]
+x1 :: x_
+x_ :: x_
+-_ : 1 [
+  1_ -_
+  11 ~_
+  x1 $$
+]
+~_ : 1 [
+  11 ~1
+  x1 ~1
+]
+~1 : 1 [
+  x_ _~
+  x1 ~1
+  11 ~1
+]
+_~ :: __
+1~ : 1 [
+  __ x1
+  x1 11
+  11 11
+]
+
+# replicate 1_ so that there's an amount of it equal to the input number
+# when the program halts, output will be the amount of x_
+
+__ 1_ -_
