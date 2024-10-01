@@ -2,6 +2,7 @@
 
 const programInp = document.getElementById("programInp");
 const compileButton = document.getElementById("compileButton");
+const updateFromStateButton = document.getElementById("updateFromStateButton");
 const dlButton = document.getElementById("dlButton");
 const fileInp = document.getElementById("fileInp");
 const exportBase64Button = document.getElementById("exportBase64Button");
@@ -29,6 +30,16 @@ compileButton.addEventListener("click", () => {
 		fileName = "program";
 		fileExt = ".deflate";
 		loadData(compile(programInp.value));
+	} catch(e) {
+		showError(e);
+	}
+});
+
+updateFromStateButton.addEventListener("click", () => {
+	try {
+		programInp.value = updateProgramWithCommands(programInp.value, dataInfo.commands);
+		programInp.focus();
+		programInp.select();
 	} catch(e) {
 		showError(e);
 	}
@@ -206,6 +217,53 @@ function stringifyCommand(c) {
 
 function discardDlUrl() {
 	URL.revokeObjectURL(dataDlUrl);
+}
+
+
+
+function updateProgramWithCommands(code, commands) {
+	const stateCommandParams = commands.map(getParams);
+	let commandIdsByParams, idLength;
+	if (code) {
+		const programCommands = parseKwert(code);
+		idLength = programCommands[0].id.length;
+		commandIdsByParams = new Map(Array.from(new Set(programCommands), c => [getParams(c), c.id]));
+	} else {
+		const uniqueParams = new Set(stateCommandParams);
+		const numNormalIds = uniqueParams.size - (uniqueParams.has("halt") ? 1 : 0);
+		idLength = (numNormalIds - 1).toString(36).length;
+		commandIdsByParams = new Map();
+		let i = 0;
+		for (const p of uniqueParams) {
+			if (p === "halt") {
+				commandIdsByParams.set(p, "$".repeat(idLength));
+				continue;
+			}
+			commandIdsByParams.set(p, (i++).toString(36).padStart(idLength, "0"));
+		}
+	}
+	const commandsById = new Map();
+	const commandsText = commands.map((c, i) => {
+		const p = getParams(c);
+		const id = commandIdsByParams.get(p);
+		if (!id) throw new Error(`Command not found in target program: ${stringifyCommand(c)}`);
+		if (!commandsById.has(id)) commandsById.set(id, c);
+		return id;
+	}).join(idLength > 1 ? " " : "");
+	return Array.from(commandsById, ([id, c]) => "` " + id + " " + stringifyCommand(c)).join("\n") + "\n\n` " + commandsText;
+	
+	function getParams(c) {
+		const copies = [];
+		for (const copy of c.copies) {
+			const prevCopy = copies[copies.length - 1];
+			if (prevCopy?.distance === copy.distance) {
+				copies[copies.length - 1] = {length: prevCopy.length + copy.length, distance: copy.distance};
+				continue;
+			}
+			copies.push(copy);
+		}
+		return c.halt ? "halt" : copies.map(copy => [copy.length, copy.distance]).flat().join("_") + "_" + c.skip;
+	}
 }
 
 
