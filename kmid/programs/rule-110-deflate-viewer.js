@@ -3,7 +3,7 @@ const fs = require("fs");
 // https://raw.githubusercontent.com/nodeca/pako/refs/heads/master/dist/pako.min.js
 const pako = require("./pako.min.js");
 let d = fs.readFileSync("./rule-110.deflate");
-const rex = /(22 d0 55 24 90 c7 46 aa 34 81 62 8f 40 b9 46 a0 5c 23 50 dc 03 04 10 40 00 01 00 00 00 ff ff 22 10 df 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 00 ef 05 10 fa)|(22 d0 17 24 90 c7 46 aa 34 81 72 8d 40 c1 45 a0 e0 22 50 dc 03 04 10 40 00 01 00 00 00 ff ff 22 10 df 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 00 ef 05 10 fa)/g;
+const rex = /(c2 dd 93 c0 9d b3 86 9b 0c ee b2 0a 77 89 84 bb 44 c2 5d f6 02 00 00 00 ff ff c2 1d 3f 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 00 2e 05 d1 fa)|(c2 dd 5f c0 9d b3 86 9b 0c ee 12 09 77 b9 83 bb dc c1 5d f6 02 00 00 00 ff ff c2 1d 3f 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 00 2e 05 d1 fa)/g;
 let history = "";
 const step = (n = 1) => {
   for (let i = 0; i < n; i++) {
