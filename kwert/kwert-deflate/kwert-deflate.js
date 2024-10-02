@@ -243,7 +243,7 @@ function updateProgramWithCommands(code, commands) {
 		}
 	}
 	const commandsById = new Map();
-	const commandsText = commands.map((c, i) => {
+	const commandsText = commands.map(c => {
 		const p = getParams(c);
 		const id = commandIdsByParams.get(p);
 		if (!id) throw new Error(`Command not found in target program: ${stringifyCommand(c)}`);
@@ -253,6 +253,7 @@ function updateProgramWithCommands(code, commands) {
 	return Array.from(commandsById, ([id, c]) => "` " + id + " " + stringifyCommand(c)).join("\n") + "\n\n` " + commandsText;
 	
 	function getParams(c) {
+		if (c.halt) return "halt";
 		const copies = [];
 		for (const copy of c.copies) {
 			const prevCopy = copies[copies.length - 1];
@@ -262,7 +263,7 @@ function updateProgramWithCommands(code, commands) {
 			}
 			copies.push(copy);
 		}
-		return c.halt ? "halt" : copies.map(copy => [copy.length, copy.distance]).flat().join("_") + "_" + c.skip;
+		return copies.map(copy => [copy.length, copy.distance]).flat().join("_") + "_" + c.skip;
 	}
 }
 
