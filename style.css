@@ -74,6 +74,11 @@ input[type=number] {
 }
 
 
+.verticalParts > *:nth-child(n + 2) {
+	margin-top: 2em;
+}
+
+
 .twoPanelUi {
 	margin-top: 2em;
 }

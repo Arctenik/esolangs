@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Kmid</title>
+    
+    <meta name="viewport" content="width=device-width">
+    
+    <link rel="icon" href="../icon.png">
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    <style>
+    
+      #dataElem {
+        padding-top: 1em;
+        padding-bottom: 1em;
+      }
+    
+    </style>
+  </head>
+  
+  <body>
+    <div class="parentRef"><a href="../">Esolang stuff</a></div>
+    
+    
+    <div class="verticalParts">
+      <div>
+        <p>
+          An interpreter for <a href="https://esolangs.org/wiki/Kmid">Kmid</a>.
+        </p>
+        <p>
+          See also the <a href="./compiler">compiler</a> between Kmid variants and Kwert.
+        </p>
+      </div>
+      
+      <div>
+        <label for="programInp">Program:</label>
+        <br>
+        <textarea id="programInp"></textarea>
+        <br><br>
+        <label for="variantInp">Variant:</label>
+        <select id="variantInp">
+          <option value="kmidt" selected>Kmidt</option>
+          <option value="kmidi">Kmidi</option>
+        </select>
+        <br><br>
+        <button id="initializeButton">Initialize</button>
+      </div>
+      
+      <div>
+        <label for="stepAmountInp">Step amount:</label> <input type="number" id="stepAmountInp" min="1" step="1" value="1">
+        <button id="stepButton">Step</button>
+        <br><br>
+        Data:
+        <br>
+        <div id="dataElem" class="preciseTextBox"></div>
+      </div>
+    </div>
+    
+    
+    <script src="kmid-parser.js"></script>
+    <script src="kmid.js"></script>
+  </body>
+</html>

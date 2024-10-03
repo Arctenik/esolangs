@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Kmid compiler</title>
+    
+    <meta name="viewport" content="width=device-width">
+    
+    <link rel="icon" href="../../icon.png">
+    
+    <link rel="stylesheet" href="../../style.css">
+  </head>
+  
+  <body>
+    <div class="parentRef"><a href="../">Kmid</a></div>
+    
+    
+    <div class="verticalParts">
+      <div>
+        A compiler (and decompiler) for Kmid.
+      </div>
+      
+      <div>
+        <label for="modeInp">Mode:</label>
+        <select id="modeInp">
+          <option value="kmidt_kmidi">Kmidt to Kmidi</option>
+          <option value="kmidt_kwert" selected>Kmidt to Kwert</option>
+          <option value="kmidi_kwert">Kmidi to Kwert</option>
+          <option value="kwert_kmidi">Decompile from Kwert</option>
+        </select>
+        <br><br>
+        <label for="programInp">Program:</label>
+        <br>
+        <textarea id="programInp"></textarea>
+        <br><br>
+        <button id="compileButton">Convert</button>
+      </div>
+      
+      <div>
+        Result:
+        <br>
+        <div id="resultElem" class="preciseTextBox"></div>
+      </div>
+    </div>
+    
+    
+    <script src="../../kwert/kwert-parser.js"></script>
+    <script src="../kmid-parser.js"></script>
+    <script src="kmid-compiler.js"></script>
+  </body>
+</html>
