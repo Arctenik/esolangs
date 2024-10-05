@@ -25,3 +25,4 @@ xxx_1_0*
 # when further compiled to DEFLATE, those become, respectively, these two byte sequences:
 # c2 dd 93 c0 9d b3 86 9b 0c ee b2 0a 77 89 84 bb 44 c2 5d f6 02 00 00 00 ff ff c2 1d 3f 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 00 2e 05 d1 fa
 # c2 dd 5f c0 9d b3 86 9b 0c ee 12 09 77 b9 83 bb dc c1 5d f6 02 00 00 00 ff ff c2 1d 3f 00 01 04 10 40 00 01 04 10 40 00 01 04 10 40 00 01 04 00 2e 05 d1 fa
+# (this is as of commit 26f3f55f40cab2ef046d68c5230c83ee6beb3057)
