@@ -5,6 +5,7 @@ NON_LAMBDA_EXPRESSION(EXPRESSION)
 (EXPRESSION)
 where NON_LAMBDA_EXPRESSION can be either of the latter two types, and EXPRESSION can be any of the three
 NAME must consist only of alphanumeric ascii and underscore
+(javascript comments and unrecognized characters are ignored)
 
 outputs an ast object with a "type" property of either "variable" (variable reference), "lambda" (lambda expression), or "call" (function call)
 additional properties for each type are:
@@ -65,7 +66,7 @@ function parse(text) {
 
 function tokenize(text) {
   return Array.from(
-    text.replace(/\/\/[^\r\n]*|\/\*(?:(?!\*\/)[^])*\*\//g, "").matchAll(/\w+|[()]|=>/g),
+    text.replace(/\/\/[^\r\n]*|\/\*(?:(?!\*\/)[^])*\*\//g, " ").matchAll(/\w+|[()]|=>/g),
     m => m[0]
   );
 }
