@@ -23,6 +23,8 @@ renderList = list => {
 // misc notes:
 // - lists are read by calling them as functions, with one callback for a nonempty list and one callback for an empty list
 // - bits a read in a similar way, with one callback for zero and one callback for one
+// - recursion is accomplished by having the recursive function take itself as its first parameter, and then passing the function to itself whenever it's called;
+//  e.g. the step function can be called as `step(step)(program)(data)`, taking itself as the first argument and the program and data as the second and third arguments
 (nil => cons => zero => one =>
   (
     append =>
