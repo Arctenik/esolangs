@@ -1,3 +1,7 @@
+const kmidParserPromise = import("./kmid-parser.mjs").then(m => {
+  Object.assign(globalThis, m);
+});
+
 const programInp = document.getElementById("programInp");
 const variantInp = document.getElementById("variantInp");
 const initializeButton = document.getElementById("initializeButton");
@@ -7,7 +11,8 @@ const dataElem = document.getElementById("dataElem");
 
 let stepFunc, program;
 
-initializeButton.addEventListener("click", () => {
+initializeButton.addEventListener("click", async () => {
+  await kmidParserPromise;
   try {
     initProgram();
   } catch(e) {
@@ -16,7 +21,8 @@ initializeButton.addEventListener("click", () => {
   }
 });
 
-stepButton.addEventListener("click", () => {
+stepButton.addEventListener("click", async () => {
+  await kmidParserPromise;
   try {
     if (!program) {
       initProgram();

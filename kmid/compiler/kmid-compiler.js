@@ -1,9 +1,14 @@
+const kmidParserPromise = import("../kmid-parser.mjs").then(m => {
+  Object.assign(globalThis, m);
+});
+
 const modeInp = document.getElementById("modeInp");
 const programInp = document.getElementById("programInp");
 const compileButton = document.getElementById("compileButton");
 const resultElem = document.getElementById("resultElem");
 
-compileButton.addEventListener("click", () => {
+compileButton.addEventListener("click", async () => {
+  await kmidParserPromise;
   const mode = modeInp.value;
   const code = programInp.value;
   resultElem.textContent =

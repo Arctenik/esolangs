@@ -1,4 +1,6 @@
-function parseKmidt(code) {
+import { parseKmidlike, checkForSymbolDefinitions } from "../kmidlike/kmidlike-parser.mjs";
+
+export function parseKmidt(code) {
   const program = parseKmid(code, true);
   
   for (const [symbol, rule] of program.rules) {
@@ -15,8 +17,9 @@ function parseKmidt(code) {
   return program;
 }
 
-function parseKmidi(code) {
+export function parseKmidi(code) {
   const program = parseKmid(code, false);
+  program.librarySize = program.rules.get(program.firstSymbol).library.length;
   
   for (const [symbol, rule] of program.rules) {
     if (rule.constant) checkForSymbolDefinitions(rule.constant, program);
@@ -30,15 +33,68 @@ function parseKmidi(code) {
   return program;
 }
 
-function checkForSymbolDefinitions(symbols, program) {
-  if (!Array.isArray(symbols)) symbols = [symbols];
-  for (const s of symbols) {
-    if (s !== program.haltSymbol && !program.rules.has(s))
-      throw new Error(`Undefined symbol: \`${s}\``);
-  }
+function parseKmid(code, isKmidt) {
+  return parseKmidlike(code, {
+    ruleSymbolSeparators: [":"],
+    hasHaltSymbol: true,
+    constantRuleBody: [
+      {
+        type: "symbol",
+        handle(symbol, rule) {
+          rule.constant = symbol;
+        }
+      }
+    ],
+    conditionalRuleBody: [
+      {
+        type: "number",
+        handle(value, rule) {
+          if (value === 0) throw new Error("Offset can't be 0");
+          rule.offset = value;
+        }
+      },
+      ...(
+        isKmidt
+        ? [
+            {
+              type: "list",
+              handle(items, rule, context) {
+                if (items.length%2 === 1) throw new Error("Unpaired symbol in table");
+                const table = new Map();
+                for (let i = 0; i < items.length; i += 2) {
+                  if (items[i] === context.haltSymbol) throw new Error("Can't match on halt symbol");
+                  table.set(items[i], items[i + 1]);
+                }
+                rule.table = table;
+              }
+            }
+          ]
+        : [
+            {
+              type: "number",
+              handle(value, rule) {
+                rule.index = value;
+              }
+            }
+          ]
+      )
+    ],
+    sharedRuleBody: (
+      isKmidt
+        ? []
+        : [
+            {
+              type: "list",
+              handle(items, rule) {
+                rule.library = items;
+              }
+            }
+          ]
+    )
+  });
 }
 
-function parseKmid(code, isKmidt) {
+function _parseKmid(code, isKmidt) {
   const nonSymbolCharRegex = /[`\[\]:]/;
   code = code.replace(/[\s;,]+|#[^\r\n]*/g, "");
   
