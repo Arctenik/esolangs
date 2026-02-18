@@ -11,7 +11,7 @@ export function checkForSymbolDefinitions(symbols, program) {
 // - hasHaltSymbol: (required if true) whether a symbol composed only of dollar signs should be interpreted as a halt symbol
 // - extraNonSymbols: optional iterable of additional characters to disallow from symbol names
 // - constantRuleBody: rule body definition for constant rules (starting after double colon)
-// - conditionalRuleBody: rule body definition for conditional rules (starting after symbol)
+// - conditionalRuleBody: optional rule body definition for conditional rules (starting after symbol)
 // - sharedRuleBody: rule body definition for shared elements at the end of both rule types
 // a rule body definition is an array of item definitions, with a "type" field indicating one of the types:
 // - "symbol": a symbol; value is the symbol's name
@@ -77,7 +77,7 @@ export function parseKmidlike(code, config) {
     } else {
       parseRuleBody(rule, config.conditionalRuleBody);
     }
-    parseRuleBody(rule, config.sharedRuleBody);
+    parseRuleBody(rule, config.sharedRuleBody ?? []);
     
     return [symbol, rule];
   }
