@@ -6,6 +6,7 @@ const variantInp = document.getElementById("variantInp");
 const initializeButton = document.getElementById("initializeButton");
 const stepAmountInp = document.getElementById("stepAmountInp");
 const stepButton = document.getElementById("stepButton");
+const haltStatusElem = document.getElementById("haltStatusElem");
 const dataElem = document.getElementById("dataElem");
 
 let parseFunc, transitionFunc;
@@ -26,6 +27,10 @@ const kmid = initInterpreter({
   },
   displayData(str) {
     dataElem.textContent = str;
+  },
+  displayHalted(halted) {
+    if (halted) haltStatusElem.classList.add("halted");
+    else haltStatusElem.classList.remove("halted");
   },
   doTransition(rule, i, program) {
     return transitionFunc(rule, i, program);
