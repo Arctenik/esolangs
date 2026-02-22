@@ -1,4 +1,6 @@
+// note: this mutates the nodes
 export function colorGraph(nodes) {
+  // based on the dsatur algorithm
   const uncolored = nodes.slice();
   const [colors, newColor] = initColors();
   return handleErrorsWithInfo({ nodes }, () => {
