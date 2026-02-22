@@ -62,7 +62,7 @@ function kmidtToKmidi(program) {
     ).flat()
   );
   const slots = [];
-  // not sure whether this is the best algorithm to use. it's basically treating it as normal bin packing with item "size" being number of conflicting symbols
+  // i believe this is basically the welsh-powell graph coloring algorithm
   const sortedSymbols = Array.from(program.rules.keys()).filter(s => symbolConflicts.has(s)).sort((a, b) => symbolConflicts.get(b).length - symbolConflicts.get(a).length);
   for (const s of sortedSymbols) {
     let slot = slots.find(slot =>
