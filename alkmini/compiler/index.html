@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Alkmini compiler</title>
+    
+    <meta name="viewport" content="width=device-width">
+    
+    <link rel="icon" href="../../icon.png">
+    
+    <link rel="stylesheet" href="../../style.css">
+  </head>
+  
+  <body>
+    <div class="parentRef"><a href="../">Alkmini</a></div>
+    
+    
+    <div class="verticalParts">
+      <div>
+        A compiler for Alkmini.
+      </div>
+      
+      <div>
+        <label for="programInp">Program:</label>
+        <br>
+        <textarea id="programInp"></textarea>
+        <br><br>
+        <button id="compileButton">Compile</button>
+      </div>
+      
+      <div>
+        Result:
+        <br>
+        <div id="resultElem" class="preciseTextBox"></div>
+      </div>
+    </div>
+    
+    
+    <script src="alkmini-compiler.mjs" type="module"></script>
+  </body>
+</html>
