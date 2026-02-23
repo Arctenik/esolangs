@@ -69,13 +69,20 @@ export function colorGraph(nodes) {
 }
 
 function getSat(node) {
-  return getConnectedColors(node).size;
+  return getConnectedColors(node, true).size;
 }
 
-function getConnectedColors(node) {
+function getConnectedColors(node, countImplied = false) {
   const colors = new Set();
   for (const neighbor of node.connections) {
     if (neighbor.color) colors.add(neighbor.color);
+  }
+  if (node.paired && countImplied) {
+    const [, reverseKey] = convertPairOrder("next", "prev", node.pairRole);
+    for (const pairNeighbor of node.paired.connections) {
+      const color = pairNeighbor.color?.[reverseKey];
+      if (color) colors.add(color);
+    }
   }
   return colors;
 }
