@@ -22,7 +22,7 @@ export function colorGraph(nodes) {
         colorNode(nodeToColor, colorCandidates[0] ?? newColor());
       }
     }
-    return [nodes, colors];
+    return [nodes, getSortedColors(colors)];
   });
   
   function determinePairColors(node, colorCandidates, pairedColorCandidates) {
@@ -66,6 +66,26 @@ export function colorGraph(nodes) {
     const connectedColors = getConnectedColors(node);
     return colors.filter(c => !connectedColors.has(c)).sort((a, b) => b.nodeCount - a.nodeCount);
   }
+}
+
+function getSortedColors(colors) {
+  colors = new Set(colors);
+  const sorted = [];
+  while (colors.size) {
+    const [refColor] = colors;
+    let color = getFirstColorInChain(refColor);
+    while (color) {
+      sorted.push(color);
+      colors.delete(color);
+      color = color.next;
+    }
+  }
+  return sorted;
+}
+
+function getFirstColorInChain(color) {
+  while (color.prev) color = color.prev;
+  return color;
 }
 
 function getSat(node) {
