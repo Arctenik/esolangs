@@ -22,6 +22,7 @@ const NOOP_COMMAND = { type: "noOp" };
 const PP_CATALOG_COMMAND = { type: "prePreCatalog" };
 const SYM_PRESERVER_COMMAND = { type: "symbolPreserver" };
 const HALT_SKIPPER_COMMAND = { type: "haltSkipper" };
+const TRANSFERRED_HALT_COMMAND = { type: "transferredHalt" };
 
 function compileAlkmini(program) {
   console.log(program);
@@ -45,6 +46,58 @@ function compileAlkmini(program) {
   const transitionSlots = getTransitionSlots(program, maxOutputSymbols);
   
   console.log(transitionSlots);
+  
+  const haltSlots = getHaltSlots(program);
+  
+  console.log(haltSlots);
+  
+  const libraries = generateLibraries(transitionSlots, haltSlots);
+  
+  console.log(libraries);
+}
+
+function generateLibraries(transitionSlots, haltSlots) {
+  const imaginarySlots = new Map();
+  for (const slotSet of [transitionSlots, haltSlots]) {
+    for (const [slotId, slot] of slotSet) {
+      if (!slot.table) continue;
+      const table = new Map();
+      for (const [matchSymbol, result] of slot.table) {
+        if (result.type === SYM_PRESERVER_COMMAND.type || result.type === HALT_SKIPPER_COMMAND.type) {
+          table.set(matchSymbol, NOOP_COMMAND);
+        }
+      }
+      if (table.size) imaginarySlots.set(slotId + "::i", { table });
+    }
+  }
+  console.log(imaginarySlots);
+}
+
+function getHaltSlots(program) {
+  const haltSlots = new Map();
+  
+  for (const [symbol, rule] of program.rules) {
+    const slotId = symbol + ":h";
+    if (rule.table) {
+      const types = new Set(Array.from(rule.table.values(), prod => prod.halt ? TRANSFERRED_HALT_COMMAND : HALT_SKIPPER_COMMAND));
+      if (types.size === 1) {
+        haltSlots.set(slotId, { constant: [...types][0] });
+      } else {
+        haltSlots.set(
+          slotId,
+          {
+            table: new Map(
+              Array.from(rule.table, ([matchSym, prod]) => [matchSym, prod.halt ? TRANSFERRED_HALT_COMMAND : HALT_SKIPPER_COMMAND])
+            )
+          }
+        );
+      }
+    } else {
+      haltSlots.set(slotId, { constant: HALT_SKIPPER_COMMAND });
+    }
+  }
+  
+  return haltSlots;
 }
 
 function getTransitionSlots(program, maxOutputSymbols) {
