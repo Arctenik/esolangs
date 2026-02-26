@@ -43,47 +43,39 @@ function compileAlkmini(program) {
     ).flat()
   );
   
-  const transitionSlots = getTransitionSlots(program, maxOutputSymbols);
+  const transitionSlots = new Map();
   
-  console.log(transitionSlots);
+  getSymbolSlots(program, maxOutputSymbols, transitionSlots);
+  getHaltSlots(program, transitionSlots);
   
-  const haltSlots = getHaltSlots(program);
-  
-  console.log(haltSlots);
-  
-  const libraries = generateLibraries(transitionSlots, haltSlots);
+  const libraries = generateLibraries(transitionSlots);
   
   console.log(libraries);
 }
 
-function generateLibraries(transitionSlots, haltSlots) {
-  const imaginarySlots = new Map();
-  for (const slotSet of [transitionSlots, haltSlots]) {
-    for (const [slotId, slot] of slotSet) {
-      if (!slot.table) continue;
-      const table = new Map();
-      for (const [matchSymbol, result] of slot.table) {
-        if (result.type === SYM_PRESERVER_COMMAND.type || result.type === HALT_SKIPPER_COMMAND.type) {
-          table.set(matchSymbol, NOOP_COMMAND);
-        }
+function generateLibraries(transitionSlots) {
+  for (const [slotId, slot] of Array.from(transitionSlots)) {
+    if (!slot.table) continue;
+    const table = new Map();
+    for (const [matchSymbol, result] of slot.table) {
+      if (result.type === SYM_PRESERVER_COMMAND.type || result.type === HALT_SKIPPER_COMMAND.type) {
+        table.set(matchSymbol, NOOP_COMMAND);
       }
-      if (table.size) imaginarySlots.set(slotId + "::i", { table });
     }
+    if (table.size) transitionSlots.set(slotId + "::i", { table });
   }
-  console.log(imaginarySlots);
+  console.log(transitionSlots);
 }
 
-function getHaltSlots(program) {
-  const haltSlots = new Map();
-  
+function getHaltSlots(program, transitionSlots) {
   for (const [symbol, rule] of program.rules) {
     const slotId = symbol + ":h";
     if (rule.table) {
       const types = new Set(Array.from(rule.table.values(), prod => prod.halt ? TRANSFERRED_HALT_COMMAND : HALT_SKIPPER_COMMAND));
       if (types.size === 1) {
-        haltSlots.set(slotId, { constant: [...types][0] });
+        transitionSlots.set(slotId, { constant: [...types][0] });
       } else {
-        haltSlots.set(
+        transitionSlots.set(
           slotId,
           {
             table: new Map(
@@ -93,16 +85,12 @@ function getHaltSlots(program) {
         );
       }
     } else {
-      haltSlots.set(slotId, { constant: HALT_SKIPPER_COMMAND });
+      transitionSlots.set(slotId, { constant: HALT_SKIPPER_COMMAND });
     }
   }
-  
-  return haltSlots;
 }
 
-function getTransitionSlots(program, maxOutputSymbols) {
-  const transitionSlots = new Map();
-  
+function getSymbolSlots(program, maxOutputSymbols, transitionSlots) {  
   for (const [symbol, rule] of program.rules) {
     if (rule.table) {
       getSlotsForTabledRule(symbol, rule);
@@ -110,8 +98,6 @@ function getTransitionSlots(program, maxOutputSymbols) {
       getSlotsForConstantRule(symbol, rule);
     }
   }
-  
-  return transitionSlots;
   
   
   function getSlotsForTabledRule(symbol, rule) {
