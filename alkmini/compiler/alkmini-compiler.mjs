@@ -1,4 +1,5 @@
 import { parseAlkmini } from "../alkmini-parser.mjs";
+import { colorGraph } from "./graph-coloring.mjs";
 
 const programInp = document.getElementById("programInp");
 const compileButton = document.getElementById("compileButton");
@@ -48,12 +49,12 @@ function compileAlkmini(program) {
   getSymbolSlots(program, maxOutputSymbols, transitionSlots);
   getHaltSlots(program, transitionSlots);
   
-  const libraries = generateLibraries(transitionSlots);
+  const libraries = generateLibraries(program, maxOutputSymbols, transitionSlots);
   
   console.log(libraries);
 }
 
-function generateLibraries(transitionSlots) {
+function generateLibraries(program, maxOutputSymbols, transitionSlots) {
   for (const [slotId, slot] of Array.from(transitionSlots)) {
     if (!slot.table) continue;
     const table = new Map();
@@ -62,9 +63,79 @@ function generateLibraries(transitionSlots) {
         table.set(matchSymbol, NOOP_COMMAND);
       }
     }
-    if (table.size) transitionSlots.set(slotId + "::i", { table });
+    if (table.size) {
+      const imaginaryId = slotId + "::i";
+      slot.imaginaryId = imaginaryId;
+      transitionSlots.set(imaginaryId, { table });
+    }
   }
+  
   console.log(transitionSlots);
+  
+  const graphNodes = [];
+  for (const [slotId, slot] of transitionSlots) {
+    if (slot.constant) continue;
+    const node = { id: slotId, connections: [] };
+    for (const otherNode of graphNodes) {
+      const otherSlot = transitionSlots.get(otherNode.id);
+      if (otherNode.id === slot.imaginaryId) {
+        node.paired = otherNode;
+        node.pairRole = "before";
+        otherNode.paired = node;
+        otherNode.pairRole = "after";
+        node.connections.push(otherNode);
+        otherNode.connections.push(node);
+      } else if (node.id === otherSlot.imaginaryId) {
+        node.paired = otherNode;
+        node.pairRole = "after";
+        otherNode.paired = node;
+        otherNode.pairRole = "before";
+        node.connections.push(otherNode);
+        otherNode.connections.push(node);
+      } else {
+        const hasConflict = Array.from(slot.table).some(
+          ([matchSym, result]) =>
+            otherSlot.table.has(matchSym) && !commandsEqual(result, otherSlot.table.get(matchSym))
+        );
+        if (hasConflict) {
+          node.connections.push(otherNode);
+          otherNode.connections.push(node);
+        }
+      }
+    }
+    graphNodes.push(node);
+  }
+  
+  const colors = colorGraph(graphNodes);
+  
+  console.log(colors, graphNodes);
+  
+  for (const node of graphNodes) {
+    const slot = transitionSlots.get(node.id);
+    slot.libraryCopyIndex = colors.indexOf(node.color);
+  }
+  
+  const libraries = new Map(Array.from(program.rules.keys(), k => [k, Array.from({ length: colors.length }).fill(null)]));
+  
+  for (const slot of transitionSlots.values()) {
+    if (!slot.table) continue;
+    for (const [matchSymbol, result] of slot.table) {
+      const library = libraries.get(matchSymbol);
+      if (library[slot.libraryCopyIndex] === null) {
+        library[slot.libraryCopyIndex] = result;
+      } else if (!commandsEqual(library[slot.libraryCopyIndex], result)) {
+        throw new Error("Created invalid library layout");
+      }
+    }
+  }
+  
+  for (const library of libraries.values()) {
+    for (let i = 0; i < library.length; i++) {
+      if (library[i] === null) library[i] = NOOP_COMMAND;
+    }
+  }
+  
+  return libraries;
 }
 
 function getHaltSlots(program, transitionSlots) {
@@ -229,6 +300,11 @@ function makeTransitionSlotsFor(symbol, resultIndex, transitionSlots) {
       return slot;
     }
   );
+}
+
+function commandsEqual(a, b) {
+  if (a.type !== b.type) return false;
+  return a.type === "symbol" ? a.symbol === b.symbol : true;
 }
 
 function makeSymbolCommand(symbol) {

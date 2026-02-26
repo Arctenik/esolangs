@@ -22,7 +22,7 @@ export function colorGraph(nodes) {
         colorNode(nodeToColor, colorCandidates[0] ?? newColor());
       }
     }
-    return [nodes, getSortedColors(colors)];
+    return getSortedColors(colors);
   });
   
   function determinePairColors(node, colorCandidates, pairedColorCandidates) {
@@ -178,4 +178,8 @@ function handleErrorsWithInfo(info, cb) {
   } catch (e) {
     throw Object.assign(e, info);
   }
+}
+
+function removeValueFromArray(arr, val) {
+  arr.splice(arr.indexOf(val), 1);
 }
