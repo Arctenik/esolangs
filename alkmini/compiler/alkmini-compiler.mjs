@@ -76,7 +76,76 @@ function compileAlkmini(program) {
   
   info.beginningData = makeBeginningData(info);
   
+  info.symbolCommandDefs = makeSymbolCommandDefs(info);
+  
   console.log(info);
+  console.log(getPhase2CellSize(info), getPhase4CellSize(info), getPhase5CellSize(info));
+}
+
+function makeSymbolCommandDefs(info) {
+  const defs = new Map();
+  for (const symbol of info.rules.keys()) {
+    defs.set(symbol, makeSymbolCommandDef(symbol, info));
+  }
+  return defs;
+}
+
+function makeSymbolCommandDef(symbol, info) {
+  const copies = [];
+  let indexInCell = 0;
+  
+  copies.push(makeSlotCopy(info.transitionSlots.get(getHaltSlotId(symbol)), info, indexInCell));
+  indexInCell++;
+  copies.push(makeCatalogCopyOf(NOOP_COMMAND, info, indexInCell));
+  indexInCell++;
+  
+  for (const command of info.libraries.get(symbol)) {
+    if (command.type === TRANSFERRED_HALT_COMMAND.type) {
+      copies.push({ length: 1, distance: indexInCell });
+    } else {
+      copies.push(makeCatalogCopyOf(command, info, indexInCell));
+    }
+    indexInCell++;
+  }
+  
+  copies.push(makeCatalogCopyOf(info.transPreSkipCommand, info, indexInCell));
+  indexInCell++;
+  copies.push(makeCatalogCopyOf(TRANS_SKIPPER_COMMAND, info, indexInCell));
+  indexInCell++;
+  
+  for (let i = 0; i < info.maxOutputSymbols; i++) {
+    copies.push(makeSlotCopy(info.transitionSlots.get(getSymbolSlotId(symbol, i)), info, indexInCell));
+    indexInCell++;
+  }
+  
+  return { copies };
+}
+
+function makeSlotCopy(slot, info, indexInCell) {
+  if (slot.table) {
+    return { length: 1, distance: indexInCell + getPhase2CellSize(info) - 2 - slot.libraryCopyIndex };
+  } else {
+    if (slot.constant.type === TRANSFERRED_HALT_COMMAND.type) {
+      return { length: 1, distance: indexInCell + getPhase2CellSize(info) };
+    } else {
+      return makeCatalogCopyOf(slot.constant, info, indexInCell);
+    }
+  }
+}
+
+function makeCatalogCopyOf(command, info, indexInCell) {
+  return makeCatalogCopy(info, indexInCell, getLastIndexOfCommandIn(command, info.catalog));
+}
+
+function makeCatalogCopy(info, indexInCell, indexInCatalog) {
+  return { length: 1, distance: indexInCell + info.catalog.length - indexInCatalog };
+}
+
+function getLastIndexOfCommandIn(command, commandList) {
+  for (let i = commandList.length - 1; i >= 0; i--) {
+    if (commandsEqual(commandList[i], command)) return i;
+  }
+  throw Object.assign(new Error("Failed to find command"), { command, commandList });
 }
 
 function makeBeginningData(info) {
@@ -388,7 +457,7 @@ function generateLibraries({ rules, transitionSlots }) {
 
 function getHaltSlots({ rules, transitionSlots }) {
   for (const [symbol, rule] of rules) {
-    const slotId = symbol + ":h";
+    const slotId = getHaltSlotId(symbol);
     if (rule.table) {
       const types = new Set(Array.from(rule.table.values(), prod => prod.halt ? NOOP_COMMAND : TRANSFERRED_HALT_COMMAND));
       if (types.size === 1) {
@@ -408,6 +477,10 @@ function getHaltSlots({ rules, transitionSlots }) {
       transitionSlots.set(slotId, { constant: TRANSFERRED_HALT_COMMAND });
     }
   }
+}
+
+function getHaltSlotId(symbol) {
+  return symbol + ":h";
 }
 
 function getSymbolSlots({ info, maxOutputSymbols, transitionSlots }, program) {  
@@ -522,10 +595,14 @@ function getSymbolSlots({ info, maxOutputSymbols, transitionSlots }, program) {
 }
 
 function makeTransitionSlotFor(symbol, resultIndex, transitionSlots) {
-  const slotId = `${symbol}:${resultIndex}`;
+  const slotId = getSymbolSlotId(symbol, resultIndex);
   const slot = {};
   transitionSlots.set(slotId, slot);
   return slot;
+}
+
+function getSymbolSlotId(symbol, resultIndex) {
+  return `${symbol}:${resultIndex}`;
 }
 
 function commandsEqual(a, b) {
