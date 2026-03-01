@@ -82,9 +82,42 @@ function compileAlkmini(program) {
   info.beginningData = makeBeginningData(info);
   
   info.symbolCommandDefs = makeSymbolCommandDefs(info);
+  info.interSymbolCommandDefs = makeInterSymbolCommandDefs(info);
   
   console.log(info);
   console.log(getPhase2CellSize(info), getPhase4CellSize(info), getPhase5CellSize(info));
+}
+
+function makeInterSymbolCommandDefs(info) {
+  const defs = new Map();
+  for (const symbol of info.rules.keys()) {
+    defs.set(symbol, makeInterSymbolCommandDef(symbol, info));
+  }
+  return defs;
+}
+
+function makeInterSymbolCommandDef(symbol, info) {
+  return buildCommand(0, addCopy => {
+    let indexInCell = 0;
+    indexInCell += addCopy(1, indexInCell + getPhase5CellSize(info));
+    indexInCell += addCopy(makeInterCatalogCopyOf(symbol, info, indexInCell));
+    indexInCell += addCopy(makeInterCatalogCopyOf(PADDING_PRE_GEN_COMMAND, info, indexInCell));
+    indexInCell += addCopy(makeInterCatalogCopyOf(CATALOG_GEN_COMMAND, info, indexInCell));
+    indexInCell += addCopy(info.catalogGenCount - 1, 1);
+  });
+}
+
+function makeInterCatalogCopyOf(commandOrSymbol, info, indexInCell) {
+  const command = typeof commandOrSymbol === "string" ? makeInterSymbolCommand(commandOrSymbol) : commandOrSymbol;
+  if (command.type === "intermediateSymbol") {
+    return makeInterCatalogCopy(info, indexInCell, info.interCatalogSymbolPositions.get(command.symbol));
+  } else {
+    return makeInterCatalogCopy(info, indexInCell, info.interCatalogOtherPositions.get(command.type));
+  }
+}
+
+function makeInterCatalogCopy(info, indexInCell, indexInCatalog) {
+  return { length: 1, distance: indexInCell + info.interCatalog.length - indexInCatalog };
 }
 
 function makeSymbolCommandDefs(info) {
@@ -96,34 +129,27 @@ function makeSymbolCommandDefs(info) {
 }
 
 function makeSymbolCommandDef(symbol, info) {
-  const copies = [];
-  let indexInCell = 0;
-  
-  copies.push(makeSlotCopy(info.transitionSlots.get(getHaltSlotId(symbol)), info, indexInCell));
-  indexInCell++;
-  copies.push(makeCatalogCopyOf(NOOP_COMMAND, info, indexInCell));
-  indexInCell++;
-  
-  for (const command of info.libraries.get(symbol)) {
-    if (command.type === TRANSFERRED_HALT_COMMAND.type) {
-      copies.push({ length: 1, distance: indexInCell });
-    } else {
-      copies.push(makeCatalogCopyOf(command, info, indexInCell));
+  return buildCommand(0, addCopy => {
+    let indexInCell = 0;
+    
+    indexInCell += addCopy(makeSlotCopy(info.transitionSlots.get(getHaltSlotId(symbol)), info, indexInCell));
+    indexInCell += addCopy(makeCatalogCopyOf(NOOP_COMMAND, info, indexInCell));
+    
+    for (const command of info.libraries.get(symbol)) {
+      if (command.type === TRANSFERRED_HALT_COMMAND.type) {
+        indexInCell += addCopy(1, indexInCell);
+      } else {
+        indexInCell += addCopy(makeCatalogCopyOf(command, info, indexInCell));
+      }
     }
-    indexInCell++;
-  }
-  
-  copies.push(makeCatalogCopyOf(info.transPreSkipCommand, info, indexInCell));
-  indexInCell++;
-  copies.push(makeCatalogCopyOf(TRANS_SKIPPER_COMMAND, info, indexInCell));
-  indexInCell++;
-  
-  for (let i = 0; i < info.maxOutputSymbols; i++) {
-    copies.push(makeSlotCopy(info.transitionSlots.get(getSymbolSlotId(symbol, i)), info, indexInCell));
-    indexInCell++;
-  }
-  
-  return { copies };
+    
+    indexInCell += addCopy(makeCatalogCopyOf(info.transPreSkipCommand, info, indexInCell));
+    indexInCell += addCopy(makeCatalogCopyOf(TRANS_SKIPPER_COMMAND, info, indexInCell));
+    
+    for (let i = 0; i < info.maxOutputSymbols; i++) {
+      indexInCell += addCopy(makeSlotCopy(info.transitionSlots.get(getSymbolSlotId(symbol, i)), info, indexInCell));
+    }
+  });
 }
 
 function makeSlotCopy(slot, info, indexInCell) {
@@ -151,6 +177,22 @@ function getLastIndexOfCommandIn(command, commandList) {
     if (commandsEqual(commandList[i], command)) return i;
   }
   throw Object.assign(new Error("Failed to find command"), { command, commandList });
+}
+
+function buildCommand(skip, cb) {
+  const copies = [];
+  cb((...args) => {
+    let copy;
+    if (args.length === 1) {
+      [copy] = args;
+    } else {
+      const [length, distance] = args;
+      copy = { length, distance };
+    }
+    copies.push(copy);
+    return copy.length;
+  });
+  return { ...(skip ? { skip } : {}), ...(copies.length ? { copies } : {}) };
 }
 
 function makeBeginningData(info) {
