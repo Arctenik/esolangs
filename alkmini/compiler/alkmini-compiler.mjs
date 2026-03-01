@@ -29,6 +29,18 @@ const TRANS_SKIPPER_COMMAND = { type: "transitionSkipper" };
 const CATALOG_GEN_COMMAND = { type: "catalogGenerator" };
 const PADDING_PRE_GEN_COMMAND = { type: "paddingPreGenerator" };
 const SYMBOL_SKIPPER_COMMAND = { type: "symbolSkipper" };
+const PHASE_ONE_HANDLER_COMMAND = { type: "phaseOneHandler" };
+const PHASE_TWO_HANDLER_COMMAND = { type: "phaseTwoHandler" };
+const PHASE_THREE_HANDLER_COMMAND = { type: "phaseThreeHandler" };
+const PHASE_FOUR_HANDLER_COMMAND = { type: "phaseFourHandler" };
+const PHASE_FIVE_HANDLER_COMMAND = { type: "phaseFiveHandler" };
+const BEGINNING_PADDING_PRE_COMMAND = { type: "beginningPaddingPreGenerator" };
+const BEGINNING_CATALOG_GEN_COMMAND = { type: "beginningCatalogGenerator" };
+const INTER_PADDING_PRE_COMMAND = { type: "intermediatePaddingPreGenerator" };
+const INTER_CATALOG_GEN_COMMAND = { type: "intermediateCatalogGenerator" };
+const NOOP_PRESERVER_COMMAND = { type: "noOpPreserver" };
+const PADDING_GEN_COMMAND = { type: "paddingGenerator" };
+const HALT_SKIPPER_COMMAND = { type: "haltSkipper" };
 
 function compileAlkmini(program) {
   const info = { program };
@@ -60,7 +72,44 @@ function compileAlkmini(program) {
   Object.assign(info, makeCatalog(info));
   Object.assign(info, makeInterCatalog(info));
   
+  resolvePaddingSize(info);
+  
+  info.beginningData = makeBeginningData(info);
+  
   console.log(info);
+}
+
+function makeBeginningData(info) {
+  return [
+    PHASE_ONE_HANDLER_COMMAND,
+    PHASE_TWO_HANDLER_COMMAND,
+    PHASE_THREE_HANDLER_COMMAND,
+    PHASE_FOUR_HANDLER_COMMAND,
+    PHASE_FIVE_HANDLER_COMMAND,
+    BEGINNING_PADDING_PRE_COMMAND,
+    BEGINNING_CATALOG_GEN_COMMAND,
+    INTER_PADDING_PRE_COMMAND,
+    INTER_CATALOG_GEN_COMMAND,
+    ...info.catalog,
+    NOOP_PRESERVER_COMMAND,
+    NOOP_COMMAND,
+    ...arrayOfN(PADDING_GEN_COMMAND, info.paddingGenCount),
+    ...info.interCatalog,
+    ...repeatNoOp(info.maxOutputSymbols * getPhase5CellSize(info) - 2),
+    HALT_SKIPPER_COMMAND,
+  ];
+}
+
+function resolvePaddingSize(info) {
+  let baseSize = Math.max(info.interCatalog.length, getPhase4CellSize(info));
+  for (let i = 0; i < 1000000; i++) {
+    [info.paddingGenCount, info.paddingGenLength] = getNearSquareFactors(baseSize);
+    info.paddingSize = info.paddingGenCount * info.paddingGenLength;
+    const p2Size = getPhase2CellSize(info);
+    if (info.paddingSize >= p2Size) return;
+    baseSize = p2Size;
+  }
+  throw new Error("Failed to resolve padding size");
 }
 
 function makeInterCatalog({ info, rules, maxOutputSymbols }) {
@@ -216,9 +265,9 @@ function makeCatalog({ info, rules }) {
 }
 
 function getNearSquareFactors(n) {
-  const f1 = Math.floor(Math.sqrt(n));
+  const f1 = Math.round(Math.sqrt(n));
   const f2 = Math.ceil(n/f1);
-  return [f1, f2];
+  return f1 < f2 ? [f1, f2] : [f2, f1];
 }
 
 function getTransPreSkipSkip(info) {
@@ -233,12 +282,28 @@ function getSymbolSkipperSkip(info) {
   return getPhase5CellSize(info) - 1;
 }
 
+function getPhase2CellSize(info) {
+  // halt signal, no-op, library, pre-skipper, skipper, output symbols,
+  // no-op preserver, no-op, padding generators, catalog
+  return 2 + info.librarySize + 2 + info.maxOutputSymbols + 2 + info.paddingGenCount + info.catalog.length;
+}
+
+function getPhase4CellSize(info) {
+  // padding pre-generator, intermediate catalog generators, and intermediate symbol commands
+  return 1 + info.interCatalogGenCount + info.maxOutputSymbols;
+}
+
 function getPhase5CellSize(info) {
-  return 3 + info.catalogGenCount; // skipper, symbol, padding pre-gen, and catalog gens
+  // skipper, symbol, padding pre-generator, and catalog generators
+  return 3 + info.catalogGenCount;
 }
 
 function repeatNoOp(times) {
-  return new Array(times).fill(NOOP_COMMAND);
+  return arrayOfN(NOOP_COMMAND, times);
+}
+
+function arrayOfN(item, times) {
+  return new Array(times).fill(item);
 }
 
 function generateLibraries({ rules, transitionSlots }) {
