@@ -6,8 +6,13 @@ const compileButton = document.getElementById("compileButton");
 const resultElem = document.getElementById("resultElem");
 
 compileButton.addEventListener("click", async () => {
-  const code = programInp.value;
-  resultElem.textContent = compileAlkmini(parseAlkmini(code));
+  try {
+    const code = programInp.value;
+    resultElem.textContent = compileAlkmini(parseAlkmini(code));
+  } catch (e) {
+    console.error(e);
+    alert(e);
+  }
 });
 
 resultElem.addEventListener("dblclick", () => {
