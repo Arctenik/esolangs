@@ -20,7 +20,6 @@ resultElem.addEventListener("dblclick", () => {
 
 
 const NOOP_COMMAND = { type: "noOp" };
-const HALT_SKIPPER_COMMAND = { type: "haltSkipper" };
 const TRANSFERRED_HALT_COMMAND = { type: "transferredHalt" };
 const EMPTY_INTER_SYMBOL_COMMAND = { type: "emptyIntermediateSymbol" };
 
@@ -58,7 +57,7 @@ function generateLibraries(program, transitionSlots) {
     if (!slot.table) continue;
     const table = new Map();
     for (const [matchSymbol, result] of slot.table) {
-      if (result.type === HALT_SKIPPER_COMMAND.type) {
+      if (result.type === TRANSFERRED_HALT_COMMAND.type) {
         table.set(matchSymbol, NOOP_COMMAND);
       }
     }
@@ -141,7 +140,7 @@ function getHaltSlots(program, transitionSlots) {
   for (const [symbol, rule] of program.rules) {
     const slotId = symbol + ":h";
     if (rule.table) {
-      const types = new Set(Array.from(rule.table.values(), prod => prod.halt ? TRANSFERRED_HALT_COMMAND : HALT_SKIPPER_COMMAND));
+      const types = new Set(Array.from(rule.table.values(), prod => prod.halt ? NOOP_COMMAND : TRANSFERRED_HALT_COMMAND));
       if (types.size === 1) {
         const [t] = types;
         transitionSlots.set(slotId, { constant: t });
@@ -150,13 +149,13 @@ function getHaltSlots(program, transitionSlots) {
           slotId,
           {
             table: new Map(
-              Array.from(rule.table, ([matchSym, prod]) => [matchSym, prod.halt ? TRANSFERRED_HALT_COMMAND : HALT_SKIPPER_COMMAND])
+              Array.from(rule.table, ([matchSym, prod]) => [matchSym, prod.halt ? NOOP_COMMAND : TRANSFERRED_HALT_COMMAND])
             )
           }
         );
       }
     } else {
-      transitionSlots.set(slotId, { constant: HALT_SKIPPER_COMMAND });
+      transitionSlots.set(slotId, { constant: TRANSFERRED_HALT_COMMAND });
     }
   }
 }
