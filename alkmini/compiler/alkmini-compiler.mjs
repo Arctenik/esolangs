@@ -22,11 +22,16 @@ resultElem.addEventListener("dblclick", () => {
 const NOOP_COMMAND = { type: "noOp" };
 const TRANSFERRED_HALT_COMMAND = { type: "transferredHalt" };
 const EMPTY_INTER_SYMBOL_COMMAND = { type: "emptyIntermediateSymbol" };
+const TWO_SKIPPER_COMMAND = { type: "twoSkipper" };
+const THREE_SKIPPER_COMMAND = { type: "threeSkipper" };
+const TRANS_PRE_SKIP_COMMAND = { type: "transitionPreSkipper" };
+const TRANS_SKIPPER_COMMAND = { type: "transitionSkipper" };
 
 function compileAlkmini(program) {
-  console.log(program);
+  const info = { program };
+  info.info = info;
   
-  let maxOutputSymbols = Math.max(
+  info.maxOutputSymbols = Math.max(
     ...Array.from(
       program.rules.values(),
       rule => {
@@ -42,17 +47,67 @@ function compileAlkmini(program) {
     ).flat()
   );
   
-  const transitionSlots = new Map();
+  info.transitionSlots = new Map();
   
-  getSymbolSlots(program, maxOutputSymbols, transitionSlots);
-  getHaltSlots(program, transitionSlots);
+  getSymbolSlots(info);
+  getHaltSlots(info);
   
-  const libraries = generateLibraries(program, transitionSlots);
+  Object.assign(info, generateLibraries(info));
   
-  console.log(libraries);
+  Object.assign(info, makeCatalog(info));
+  
+  console.log(info);
 }
 
-function generateLibraries(program, transitionSlots) {
+function makeCatalog({ info, program }) {
+  const start = [
+    ...Array.from(program.rules.keys(), sym => makeInterSymbolCommand(sym)),
+    EMPTY_INTER_SYMBOL_COMMAND,
+  ];
+  const tpsSkip = getTransPreSkipSkip(info);
+  const transPreSkipCommand =
+    tpsSkip === 2
+    ? TWO_SKIPPER_COMMAND
+    : tpsSkip === 3
+    ? THREE_SKIPPER_COMMAND
+    : TRANS_PRE_SKIP_COMMAND;
+  const end = [
+    TWO_SKIPPER_COMMAND, ...repeatNoOp(2),
+    THREE_SKIPPER_COMMAND, ...repeatNoOp(3),
+    ...(
+      transPreSkipCommand.type === TRANS_PRE_SKIP_COMMAND.type
+      ? [transPreSkipCommand, ...repeatNoOp(tpsSkip)]
+      : []
+    ),
+    TRANS_SKIPPER_COMMAND, ...repeatNoOp(getTransSkipperSkip(info)),
+  ];
+  
+  const baseSize = start.length + end.length;
+  const preCatalogCount = Math.floor(Math.sqrt(baseSize));
+  const preCatalogLength = Math.ceil(baseSize/preCatalogCount);
+  
+  const catalog = [
+    ...start,
+    ...repeatNoOp(preCatalogCount * preCatalogLength - baseSize),
+    ...end,
+  ];
+  
+  return { catalog, preCatalogCount, preCatalogLength, transPreSkipCommand };
+}
+
+function getTransPreSkipSkip(info) {
+  return 1 + getTransSkipperSkip(info);
+}
+
+function getTransSkipperSkip(info) {
+  return info.maxOutputSymbols;
+}
+
+function repeatNoOp(times) {
+  return new Array(times).fill(NOOP_COMMAND);
+}
+
+function generateLibraries({ program, transitionSlots }) {
   for (const [slotId, slot] of Array.from(transitionSlots)) {
     if (!slot.table) continue;
     const table = new Map();
@@ -67,8 +122,6 @@ function generateLibraries(program, transitionSlots) {
       transitionSlots.set(imaginaryId, { table });
     }
   }
-  
-  console.log(transitionSlots);
   
   const graphNodes = [];
   for (const [slotId, slot] of transitionSlots) {
@@ -106,8 +159,6 @@ function generateLibraries(program, transitionSlots) {
   
   const colors = colorGraph(graphNodes);
   
-  console.log(colors, graphNodes);
-  
   for (const node of graphNodes) {
     const slot = transitionSlots.get(node.id);
     slot.libraryCopyIndex = colors.indexOf(node.color);
@@ -133,10 +184,10 @@ function generateLibraries(program, transitionSlots) {
     }
   }
   
-  return libraries;
+  return { libraries, librarySize: colors.length };
 }
 
-function getHaltSlots(program, transitionSlots) {
+function getHaltSlots({ program, transitionSlots }) {
   for (const [symbol, rule] of program.rules) {
     const slotId = symbol + ":h";
     if (rule.table) {
@@ -160,7 +211,7 @@ function getHaltSlots(program, transitionSlots) {
   }
 }
 
-function getSymbolSlots(program, maxOutputSymbols, transitionSlots) {  
+function getSymbolSlots({ program, maxOutputSymbols, transitionSlots }) {  
   for (const [symbol, rule] of program.rules) {
     if (rule.table) {
       getSlotsForTabledRule(symbol, rule);
@@ -180,7 +231,7 @@ function getSymbolSlots(program, maxOutputSymbols, transitionSlots) {
           slot.constant = EMPTY_INTER_SYMBOL_COMMAND;
         } else {
           const [symbol] = resultOptions;
-          slot.constant = makeSymbolCommand(symbol);
+          slot.constant = makeInterSymbolCommand(symbol);
         }
       } else {
         slot.table = new Map(
@@ -188,7 +239,7 @@ function getSymbolSlots(program, maxOutputSymbols, transitionSlots) {
             rule.table,
             ([matchSym, prod]) => [
               matchSym,
-              prod.result[i] ? makeSymbolCommand(prod.result[i]) : EMPTY_INTER_SYMBOL_COMMAND
+              prod.result[i] ? makeInterSymbolCommand(prod.result[i]) : EMPTY_INTER_SYMBOL_COMMAND
             ]
           )
         );
@@ -262,7 +313,7 @@ function getSymbolSlots(program, maxOutputSymbols, transitionSlots) {
   function getSlotsForConstantRule(symbol, rule) {
     for (let i = 0; i < maxOutputSymbols; i++) {
       const slot = makeTransitionSlotFor(symbol, i, transitionSlots);
-      slot.constant = rule.constant[i] ? makeSymbolCommand(rule.constant[i]) : EMPTY_INTER_SYMBOL_COMMAND;
+      slot.constant = rule.constant[i] ? makeInterSymbolCommand(rule.constant[i]) : EMPTY_INTER_SYMBOL_COMMAND;
     }
   }
 }
@@ -276,7 +327,11 @@ function makeTransitionSlotFor(symbol, resultIndex, transitionSlots) {
 
 function commandsEqual(a, b) {
   if (a.type !== b.type) return false;
-  return a.type === "symbol" ? a.symbol === b.symbol : true;
+  return a.type === "symbol" || a.type === "intermediateSymbol" ? a.symbol === b.symbol : true;
+}
+
+function makeInterSymbolCommand(symbol) {
+  return { type: "intermediateSymbol", symbol };
 }
 
 function makeSymbolCommand(symbol) {
