@@ -26,6 +26,9 @@ const TWO_SKIPPER_COMMAND = { type: "twoSkipper" };
 const THREE_SKIPPER_COMMAND = { type: "threeSkipper" };
 const TRANS_PRE_SKIP_COMMAND = { type: "transitionPreSkipper" };
 const TRANS_SKIPPER_COMMAND = { type: "transitionSkipper" };
+const CATALOG_GEN_COMMAND = { type: "catalogGenerator" };
+const PADDING_PRE_GEN_COMMAND = { type: "paddingPreGenerator" };
+const SYMBOL_SKIPPER_COMMAND = { type: "symbolSkipper" };
 
 function compileAlkmini(program) {
   const info = { program };
@@ -49,19 +52,137 @@ function compileAlkmini(program) {
   
   info.transitionSlots = new Map();
   
-  getSymbolSlots(info);
+  getSymbolSlots(info, program);
   getHaltSlots(info);
   
   Object.assign(info, generateLibraries(info));
   
   Object.assign(info, makeCatalog(info));
+  Object.assign(info, makeInterCatalog(info));
   
   console.log(info);
 }
 
-function makeCatalog({ info, program }) {
+function makeInterCatalog({ info, rules, maxOutputSymbols }) {
+  const cellSize = getPhase5CellSize(info);
+  
+  const symbolPatterns = new Map(Array.from(rules.keys(), sym => [sym, new Array(maxOutputSymbols).fill(false)]));
+  for (const rule of rules.values()) {
+    if (rule.table) {
+      for (const prod of rule.table.values()) {
+        for (let i = 0; i < maxOutputSymbols; i++) {
+          if (prod.result[i]) symbolPatterns.get(prod.result[i])[i] = true;
+        }
+      }
+    } else {
+      for (let i = 0; i < maxOutputSymbols; i++) {
+        if (rule.constant[i]) symbolPatterns.get(rule.constant[i])[i] = true;
+      }
+    }
+  }
+  
+  const commandPatterns = [
+    ...Array.from(symbolPatterns, ([symbol, pattern]) => getCommandPattern(pattern, [makeSymbolCommand(symbol)])),
+    getCommandPattern(
+      Array.from(symbolPatterns.values()).reduce(
+        (combinedPattern, pattern) => combinedPattern.map((v, i) => v || pattern[i]),
+        new Array(maxOutputSymbols).fill(false)
+      ),
+      [CATALOG_GEN_COMMAND, PADDING_PRE_GEN_COMMAND]
+    ),
+    getCommandPattern(new Array(maxOutputSymbols).fill(true), [NOOP_COMMAND]),
+  ];
+  
+  commandPatterns.sort(({ pattern: a }, { pattern: b }) => {
+    const widthDiff = b.length - a.length;
+    if (widthDiff !== 0) return widthDiff;
+    return getNonEmptyCount(b) - getNonEmptyCount(a);
+  });
+  
+  const interCatalogPattern = [];
+  const interCatalogSymbolPositions = new Map();
+  const interCatalogOtherPositions = new Map();
+  
+  for (const patternInfo of commandPatterns) {
+    for (let i = 0; i <= interCatalogPattern.length; i++) {
+      if (patternFitsAt(patternInfo, i)) {
+        insertPatternAt(patternInfo, i);
+        break;
+      }
+    }
+  }
+  
+  const end = [SYMBOL_SKIPPER_COMMAND, ...repeatNoOp(getSymbolSkipperSkip(info))];
+  
+  const baseSize = interCatalogPattern.length + end.length;
+  const [interCatalogGenCount, interCatalogGenLength] = getNearSquareFactors(baseSize);
+  
+  const interCatalog = [
+    ...interCatalogPattern.map(v => v === null ? NOOP_COMMAND : v),
+    ...repeatNoOp(interCatalogGenCount * interCatalogGenLength - baseSize),
+    ...end,
+  ];
+  
+  return {
+    interCatalog,
+    interCatalogGenCount,
+    interCatalogGenLength,
+    interCatalogSymbolPositions,
+    interCatalogOtherPositions
+  };
+  
+  
+  function patternFitsAt({ pattern }, i) {
+    for (const [j, item] of pattern.entries()) {
+      if (item !== null && interCatalogPattern[i + j]) return false;
+    }
+    return true;
+  }
+  
+  function insertPatternAt({ pattern, commands, offset }, i) {
+    for (const [j, item] of pattern.entries()) {
+      if (item === null) {
+        if (interCatalogPattern[i + j] === undefined) interCatalogPattern[i + j] = null;
+      } else {
+        interCatalogPattern[i + j] = item;
+      }
+    }
+    for (const [j, command] of commands.entries()) {
+      const pos = i - offset + j;
+      if (command.type === "symbol") {
+        interCatalogSymbolPositions.set(command.symbol, pos);
+      } else {
+        interCatalogOtherPositions.set(command.type, pos);
+      }
+    }
+  }
+  
+  function getNonEmptyCount(commandPattern) {
+    return commandPattern.reduce((c, v) => c + (v === null ? 0 : 1), 0)
+  }
+  
+  function getCommandPattern(symbolPattern, commands) {
+    const result = new Array(symbolPattern.length * cellSize).fill(null);
+    for (const [i, filled] of symbolPattern.entries()) {
+      if (!filled) continue;
+      for (const [j, command] of commands.entries()) {
+        result[i * cellSize + j] = command;
+      }
+    }
+    let offset = 0;
+    while (result[0] === null) {
+      result.shift();
+      offset++;
+    }
+    while (result[result.length - 1] === null) result.pop();
+    if (!result.length) result.push(...commands); // for simplicity, require that every symbol appear
+    return { pattern: result, commands, offset };
+  }
+}
+
+function makeCatalog({ info, rules }) {
   const start = [
-    ...Array.from(program.rules.keys(), sym => makeInterSymbolCommand(sym)),
+    ...Array.from(rules.keys(), sym => makeInterSymbolCommand(sym)),
     EMPTY_INTER_SYMBOL_COMMAND,
   ];
   const tpsSkip = getTransPreSkipSkip(info);
@@ -83,16 +204,21 @@ function makeCatalog({ info, program }) {
   ];
   
   const baseSize = start.length + end.length;
-  const preCatalogCount = Math.floor(Math.sqrt(baseSize));
-  const preCatalogLength = Math.ceil(baseSize/preCatalogCount);
+  const [catalogGenCount, catalogGenLength] = getNearSquareFactors(baseSize);
   
   const catalog = [
     ...start,
-    ...repeatNoOp(preCatalogCount * preCatalogLength - baseSize),
+    ...repeatNoOp(catalogGenCount * catalogGenLength - baseSize),
     ...end,
   ];
   
-  return { catalog, preCatalogCount, preCatalogLength, transPreSkipCommand };
+  return { catalog, catalogGenCount, catalogGenLength, transPreSkipCommand };
+}
+
+function getNearSquareFactors(n) {
+  const f1 = Math.floor(Math.sqrt(n));
+  const f2 = Math.ceil(n/f1);
+  return [f1, f2];
 }
 
 function getTransPreSkipSkip(info) {
@@ -103,11 +229,19 @@ function getTransSkipperSkip(info) {
   return info.maxOutputSymbols;
 }
 
+function getSymbolSkipperSkip(info) {
+  return getPhase5CellSize(info) - 1;
+}
+
+function getPhase5CellSize(info) {
+  return 3 + info.catalogGenCount; // skipper, symbol, padding pre-gen, and catalog gens
+}
+
 function repeatNoOp(times) {
   return new Array(times).fill(NOOP_COMMAND);
 }
 
-function generateLibraries({ program, transitionSlots }) {
+function generateLibraries({ rules, transitionSlots }) {
   for (const [slotId, slot] of Array.from(transitionSlots)) {
     if (!slot.table) continue;
     const table = new Map();
@@ -164,7 +298,7 @@ function generateLibraries({ program, transitionSlots }) {
     slot.libraryCopyIndex = colors.indexOf(node.color);
   }
   
-  const libraries = new Map(Array.from(program.rules.keys(), k => [k, Array.from({ length: colors.length }).fill(null)]));
+  const libraries = new Map(Array.from(rules.keys(), k => [k, Array.from({ length: colors.length }).fill(null)]));
   
   for (const slot of transitionSlots.values()) {
     if (!slot.table) continue;
@@ -187,8 +321,8 @@ function generateLibraries({ program, transitionSlots }) {
   return { libraries, librarySize: colors.length };
 }
 
-function getHaltSlots({ program, transitionSlots }) {
-  for (const [symbol, rule] of program.rules) {
+function getHaltSlots({ rules, transitionSlots }) {
+  for (const [symbol, rule] of rules) {
     const slotId = symbol + ":h";
     if (rule.table) {
       const types = new Set(Array.from(rule.table.values(), prod => prod.halt ? NOOP_COMMAND : TRANSFERRED_HALT_COMMAND));
@@ -211,14 +345,17 @@ function getHaltSlots({ program, transitionSlots }) {
   }
 }
 
-function getSymbolSlots({ program, maxOutputSymbols, transitionSlots }) {  
+function getSymbolSlots({ info, maxOutputSymbols, transitionSlots }, program) {  
+  const updatedRules = new Map();
   for (const [symbol, rule] of program.rules) {
     if (rule.table) {
-      getSlotsForTabledRule(symbol, rule);
+      updatedRules.set(symbol, getSlotsForTabledRule(symbol, rule));
     } else {
       getSlotsForConstantRule(symbol, rule);
+      updatedRules.set(symbol, rule);
     }
   }
+  info.rules = updatedRules;
   
   
   function getSlotsForTabledRule(symbol, rule) {
@@ -245,6 +382,7 @@ function getSymbolSlots({ program, maxOutputSymbols, transitionSlots }) {
         );
       }
     }
+    return rule;
   }
   
   function getAlignedTabledRule(rule) {
