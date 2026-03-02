@@ -103,12 +103,12 @@ function makeKwertCode(info) {
   const definedIds = new Set();
   
   let definitionsCode = "";
-  let commandsCode = "";
+  let commandsCode = "` ";
   let needsSpace = false;
   
   for (const command of info.initialState) {
     if (command.type === "separator") {
-      commandsCode += command.size === "small" ? "   " : "\n";
+      commandsCode += command.size === "small" ? "   " : "\n` ";
       needsSpace = false;
       continue;
     }
