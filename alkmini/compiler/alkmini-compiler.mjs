@@ -46,6 +46,7 @@ const INTER_CATALOG_GEN_COMMAND = { type: "intermediateCatalogGenerator" };
 const NOOP_PRESERVER_COMMAND = { type: "noOpPreserver" };
 const PADDING_GEN_COMMAND = { type: "paddingGenerator" };
 const HALT_SKIPPER_COMMAND = { type: "haltSkipper" };
+const BEGINNING_SKIPPER_COMMAND = { type: "beginningSkipper" };
 
 function compileAlkmini(program) {
   const info = { program };
@@ -79,13 +80,211 @@ function compileAlkmini(program) {
   
   resolvePaddingSize(info);
   
-  info.beginningData = makeBeginningData(info);
+  Object.assign(info, makeBeginningData(info));
   
   info.symbolCommandDefs = makeSymbolCommandDefs(info);
   info.interSymbolCommandDefs = makeInterSymbolCommandDefs(info);
+  info.otherCommandDefs = makeOtherCommandDefs(info);
   
   console.log(info);
   console.log(getPhase2CellSize(info), getPhase4CellSize(info), getPhase5CellSize(info));
+}
+
+function makeOtherCommandDefs(info) {
+  const defs = new Map();
+  
+  
+  defs.set(
+    BEGINNING_SKIPPER_COMMAND.type,
+    buildCommand(info.beginningData.length, addCopy => { addCopy(1, 1) })
+  );
+  
+  defs.set(NOOP_COMMAND.type, {});
+  
+  defs.set(NOOP_PRESERVER_COMMAND.type, buildCommand(1));
+  
+  defs.set(PADDING_GEN_COMMAND.type, buildCommand(0, addCopy => { addCopy(info.paddingGenLength, 1) }));
+  
+  defs.set(
+    TWO_SKIPPER_COMMAND.type,
+    buildCommand(2)
+  );
+  
+  defs.set(
+    THREE_SKIPPER_COMMAND.type,
+    buildCommand(3)
+  );
+  
+  
+  defs.set(
+    PHASE_ONE_HANDLER_COMMAND.type,
+    buildCommand(0, addCopy => {
+      let index = 0;
+      index += addCopy(makeBeginningCopyOf(PHASE_TWO_HANDLER_COMMAND, info, index));
+      index += addCopy(makeBeginningCopyOf(NOOP_COMMAND, info, index));
+      index += addCopy(getPhase2BeginningPaddingSize(info) - 1, 1);
+    })
+  );
+  
+  defs.set(
+    BEGINNING_PADDING_PRE_COMMAND.type,
+    buildCommand(0, addCopy => {
+      let index = adaptPhase2PosForBeginning(getPhase2PaddingGenPos(info));
+      index += addCopy(makeBeginningCopy(info, index, info.beginningPaddingGenIndex, 2 + info.paddingGenCount));
+    })
+  );
+  
+  defs.set(
+    BEGINNING_CATALOG_GEN_COMMAND.type,
+    buildCommand(0, addCopy => {
+      let index = adaptPhase2PosForBeginning(getPhase2CatalogPos(info));
+      index += addCopy(makeBeginningCopy(info, index, info.beginningCatalogIndex, info.catalogGenLength));
+    })
+  );
+  
+  defs.set(
+    PADDING_PRE_GEN_COMMAND.type,
+    buildCommand(0, addCopy => {
+      addCopy(2 + info.paddingGenCount, getPhase2CellSize(info));
+    })
+  );
+  
+  defs.set(
+    CATALOG_GEN_COMMAND.type,
+    buildCommand(0, addCopy => {
+      addCopy(info.catalogGenLength, getPhase2CellSize(info));
+    })
+  );
+  
+  defs.set(
+    HALT_SKIPPER_COMMAND.type,
+    buildCommand(1, addCopy => {
+      let index = 0;
+      index += addCopy(makeCatalogCopyOf(THREE_SKIPPER_COMMAND, info, index));
+      index += addCopy(makeCatalogCopyOf(TWO_SKIPPER_COMMAND, info, index));
+      index += addCopy(4, 2);
+      index += addCopy(1, index + getPhase2CellSize(info));
+    })
+  );
+  
+  
+  defs.set(
+    PHASE_TWO_HANDLER_COMMAND.type,
+    buildCommand(0, addCopy => {
+      addCopy(makeBeginningCopyOf(PHASE_THREE_HANDLER_COMMAND, info, 0));
+    })
+  );
+  
+  if (info.transPreSkipCommand.type === TRANS_PRE_SKIP_COMMAND.type) {
+    defs.set(
+      TRANS_PRE_SKIP_COMMAND.type,
+      buildCommand(getTransPreSkipSkip(info))
+    );
+  }
+  
+  
+  defs.set(
+    PHASE_THREE_HANDLER_COMMAND.type,
+    buildCommand(0, addCopy => {
+      let index = 0;
+      index += addCopy(makeBeginningCopyOf(PHASE_FOUR_HANDLER_COMMAND, info, index));
+      index += addCopy(makeBeginningCopyOf(INTER_PADDING_PRE_COMMAND, info, index));
+      index += addCopy(makeBeginningCopyOf(INTER_CATALOG_GEN_COMMAND, info, index));
+      index += addCopy(info.interCatalogGenCount - 1, 1);
+      index += addCopy(makeBeginningCopyOf(EMPTY_INTER_SYMBOL_COMMAND, info, index));
+      index += addCopy(info.maxOutputSymbols - 1, 1);
+    })
+  );
+  
+  defs.set(
+    TRANS_SKIPPER_COMMAND.type,
+    buildCommand(getTransSkipperSkip(info), addCopy => {
+      const cellSize = getPhase4CellSize(info);
+      addCopy(1, cellSize);
+      addCopy(info.interCatalogGenCount, cellSize);
+    })
+  );
+  
+  
+  defs.set(
+    PHASE_FOUR_HANDLER_COMMAND.type,
+    buildCommand(0, addCopy => {
+      addCopy(makeBeginningCopyOf(PHASE_FIVE_HANDLER_COMMAND, info, 0));
+    })
+  );
+  
+  defs.set(
+    INTER_PADDING_PRE_COMMAND.type,
+    buildCommand(0, addCopy => {
+      addCopy(2 + info.paddingGenCount, getPhase5OldCellSize(info));
+    })
+  );
+  
+  defs.set(
+    INTER_CATALOG_GEN_COMMAND.type,
+    buildCommand(0, addCopy => {
+      addCopy(info.interCatalogGenLength, getPhase5OldCellSize(info));
+    })
+  );
+  
+  defs.set(
+    EMPTY_INTER_SYMBOL_COMMAND.type,
+    buildCommand(0, addCopy => {
+      const cellSize = getPhase5CellSize(info);
+      let index = 0;
+      index += addCopy(1, cellSize);
+      index += addCopy(makeInterCatalogCopyOf(NOOP_COMMAND, info, index));
+      index += addCopy(getSymbolSkipperSkip(info) - 1, 1);
+    })
+  );
+  
+  
+  defs.set(
+    PHASE_FIVE_HANDLER_COMMAND.type,
+    buildCommand(0, addCopy => {
+      let index = 0;
+      index += addCopy(makeBeginningCopyOf(PHASE_ONE_HANDLER_COMMAND, info, index));
+      index += addCopy(makeBeginningCopyOf(BEGINNING_PADDING_PRE_COMMAND, info, index));
+      index += addCopy(makeBeginningCopyOf(BEGINNING_CATALOG_GEN_COMMAND, info, index));
+      index += addCopy(info.catalogGenCount - 1, 1);
+    })
+  );
+  
+  defs.set(
+    SYMBOL_SKIPPER_COMMAND.type,
+    buildCommand(getSymbolSkipperSkip(info))
+  );
+  
+  
+  return defs;
+}
+
+function makeBeginningCopyOf(command, info, indexAfterBeginning) {
+  return makeBeginningCopy(info, indexAfterBeginning, getLastIndexOfCommandIn(command, info.beginningData));
+}
+
+function makeBeginningCopy(info, indexAfterBeginning, indexInBeginning, length = 1) {
+  return { length, distance: indexAfterBeginning + info.beginningData.length - indexInBeginning };
+}
+
+function getPhase2BeginningPaddingSize(info) {
+  // everything between the handler and the padding gen is padding
+  return adaptPhase2PosForBeginning(getPhase2PaddingGenPos(info)) - 1;
+}
+
+function adaptPhase2PosForBeginning(pos) {
+  // halt command extends into the beginning data
+  return pos - 1;
+}
+
+function getPhase2CatalogPos(info) {
+  // no-op preserver, no-op, padding generators
+  return getPhase2PaddingGenPos(info) + 2 + info.paddingGenCount;
+}
+
+function getPhase2PaddingGenPos(info) {
+  // halt command, no-op, library, two skippers, output symbols
+  return 2 + info.librarySize + 2 + info.maxOutputSymbols;
 }
 
 function makeInterSymbolCommandDefs(info) {
@@ -181,7 +380,7 @@ function getLastIndexOfCommandIn(command, commandList) {
 
 function buildCommand(skip, cb) {
   const copies = [];
-  cb((...args) => {
+  cb?.((...args) => {
     let copy;
     if (args.length === 1) {
       [copy] = args;
@@ -196,7 +395,7 @@ function buildCommand(skip, cb) {
 }
 
 function makeBeginningData(info) {
-  return [
+  const beforeCatalog = [
     PHASE_ONE_HANDLER_COMMAND,
     PHASE_TWO_HANDLER_COMMAND,
     PHASE_THREE_HANDLER_COMMAND,
@@ -206,7 +405,19 @@ function makeBeginningData(info) {
     BEGINNING_CATALOG_GEN_COMMAND,
     INTER_PADDING_PRE_COMMAND,
     INTER_CATALOG_GEN_COMMAND,
+  ];
+  
+  const beginningCatalogIndex = beforeCatalog.length;
+  
+  const beforePaddingGen = [
+    ...beforeCatalog,
     ...info.catalog,
+  ];
+  
+  const beginningPaddingGenIndex = beforePaddingGen.length;
+  
+  const beginningData = [
+    ...beforePaddingGen,
     NOOP_PRESERVER_COMMAND,
     NOOP_COMMAND,
     ...arrayOfN(PADDING_GEN_COMMAND, info.paddingGenCount),
@@ -214,6 +425,8 @@ function makeBeginningData(info) {
     ...repeatNoOp(info.maxOutputSymbols * getPhase5CellSize(info) - 2),
     HALT_SKIPPER_COMMAND,
   ];
+  
+  return { beginningData, beginningCatalogIndex, beginningPaddingGenIndex };
 }
 
 function resolvePaddingSize(info) {
@@ -407,6 +620,11 @@ function getPhase2CellSize(info) {
 function getPhase4CellSize(info) {
   // padding pre-generator, intermediate catalog generators, and intermediate symbol commands
   return 1 + info.interCatalogGenCount + info.maxOutputSymbols;
+}
+
+function getPhase5OldCellSize(info) {
+  // no-op preserver, no-op, padding generators, intermediate catalog, new cells
+  return 2 + info.paddingGenCount + info.interCatalog.length + info.maxOutputSymbols * getPhase5CellSize(info);
 }
 
 function getPhase5CellSize(info) {
