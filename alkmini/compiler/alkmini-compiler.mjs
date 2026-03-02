@@ -91,8 +91,8 @@ function compileAlkmini(program) {
   
   info.initialState = makeInitialProgramState(info);
   
-  console.log(info);
-  console.log(getPhase2CellSize(info), getPhase4CellSize(info), getPhase5CellSize(info));
+  // console.log(info);
+  // console.log(getPhase2CellSize(info), getPhase4CellSize(info), getPhase5CellSize(info));
   
   return makeKwertCode(info);
 }
