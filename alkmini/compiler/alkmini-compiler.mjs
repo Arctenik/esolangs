@@ -47,6 +47,7 @@ const NOOP_PRESERVER_COMMAND = { type: "noOpPreserver" };
 const PADDING_GEN_COMMAND = { type: "paddingGenerator" };
 const HALT_SKIPPER_COMMAND = { type: "haltSkipper" };
 const BEGINNING_SKIPPER_COMMAND = { type: "beginningSkipper" };
+const HALT_COMMAND = { type: "halt" };
 
 function compileAlkmini(program) {
   const info = { program };
@@ -86,8 +87,32 @@ function compileAlkmini(program) {
   info.interSymbolCommandDefs = makeInterSymbolCommandDefs(info);
   info.otherCommandDefs = makeOtherCommandDefs(info);
   
+  info.initialState = makeInitialProgramState(info);
+  
   console.log(info);
   console.log(getPhase2CellSize(info), getPhase4CellSize(info), getPhase5CellSize(info));
+}
+
+function makeInitialProgramState(info) {
+  return [
+    BEGINNING_SKIPPER_COMMAND,
+    BEGINNING_SKIPPER_COMMAND,
+    ...info.beginningData,
+    PHASE_ONE_HANDLER_COMMAND,
+    BEGINNING_PADDING_PRE_COMMAND,
+    ...arrayOfN(BEGINNING_CATALOG_GEN_COMMAND, info.catalogGenCount),
+    ...(
+      info.program.data.map(symbol => {
+        return [
+          makeSymbolCommand(symbol),
+          PADDING_PRE_GEN_COMMAND,
+          ...arrayOfN(CATALOG_GEN_COMMAND, info.catalogGenCount),
+        ];
+      }).flat()
+    ),
+    HALT_SKIPPER_COMMAND,
+    HALT_COMMAND,
+  ];
 }
 
 function makeOtherCommandDefs(info) {
@@ -114,6 +139,8 @@ function makeOtherCommandDefs(info) {
     THREE_SKIPPER_COMMAND.type,
     buildCommand(3)
   );
+  
+  defs.set(HALT_COMMAND.type, { halt: true });
   
   
   defs.set(
