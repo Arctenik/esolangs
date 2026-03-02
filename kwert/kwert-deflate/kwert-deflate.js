@@ -8,6 +8,9 @@ const fileInp = document.getElementById("fileInp");
 const exportBase64Button = document.getElementById("exportBase64Button");
 const loadBase64Button = document.getElementById("loadBase64Button");
 const base64Inp = document.getElementById("base64Inp");
+const statusElem = document.getElementById("statusElem");
+const commandInfoButton = document.getElementById("commandInfoButton");
+const commandInfoElem = document.getElementById("commandInfoElem");
 const resetDataButton = document.getElementById("resetDataButton");
 const inflateButton = document.getElementById("inflateButton");
 const cycleElem = document.getElementById("cycleElem");
@@ -91,6 +94,25 @@ loadBase64Button.addEventListener("click", async () => {
 	} catch(e) {
 		showError(e);
 	}
+});
+
+commandInfoButton.addEventListener("click", () => {
+	commandInfoElem.innerHTML = "";
+	if (commandInfoElem.classList.contains("shown")) {
+		commandInfoElem.classList.remove("shown");
+		commandInfoButton.textContent = "Show command info";
+		return;
+	}
+	renderCommandInfo({
+		elem: commandInfoElem,
+		code: programInp.value,
+		commands: dataInfo.commands,
+		commandIndices: dataInfo.commandIndices,
+		data: currentData,
+		commandLength: dataInfo.commandLength
+	});
+	commandInfoElem.classList.add("shown");
+	commandInfoButton.textContent = "Hide command info";
 });
 
 resetDataButton.addEventListener("click", () => {
@@ -205,14 +227,32 @@ function showData() {
 				currentDataElem.insertAdjacentText("beforeend", "\n");
 			}
 		}
-		currentDataElem.insertAdjacentText("beforeend", currentData[i].toString(16).padStart(2, "0"));
+		currentDataElem.insertAdjacentText("beforeend", stringifyByte(currentData[i]));
 		i++;
 	}
+}
+
+function stringifyByte(v) {
+	return v.toString(16).padStart(2, "0");
 }
 
 function stringifyCommand(c) {
 	if (c.halt) return "[$]";
 	return "[" + (c.copies.length || c.skip ? c.copies.map(({length, distance}) => length + " " + distance).join(",") : "") + (c.skip ? ";" + c.skip : "") + "]";
+}
+
+function getParamsKey(c) {
+	if (c.halt) return "halt";
+	const copies = [];
+	for (const copy of c.copies) {
+		const prevCopy = copies[copies.length - 1];
+		if (prevCopy?.distance === copy.distance) {
+			copies[copies.length - 1] = {length: prevCopy.length + copy.length, distance: copy.distance};
+			continue;
+		}
+		copies.push(copy);
+	}
+	return copies.map(copy => [copy.length, copy.distance]).flat().join("_") + "_" + c.skip;
 }
 
 function discardDlUrl() {
@@ -222,12 +262,12 @@ function discardDlUrl() {
 
 
 function updateProgramWithCommands(code, commands) {
-	const stateCommandParams = commands.map(getParams);
+	const stateCommandParams = commands.map(getParamsKey);
 	let commandIdsByParams, idLength;
 	if (code) {
 		const programCommands = parseKwert(code);
 		idLength = programCommands[0].id.length;
-		commandIdsByParams = new Map(Array.from(new Set(programCommands), c => [getParams(c), c.id]));
+		commandIdsByParams = new Map(Array.from(new Set(programCommands), c => [getParamsKey(c), c.id]));
 	} else {
 		const uniqueParams = new Set(stateCommandParams);
 		const numNormalIds = uniqueParams.size - (uniqueParams.has("halt") ? 1 : 0);
@@ -244,26 +284,46 @@ function updateProgramWithCommands(code, commands) {
 	}
 	const commandsById = new Map();
 	const commandsText = commands.map(c => {
-		const p = getParams(c);
+		const p = getParamsKey(c);
 		const id = commandIdsByParams.get(p);
 		if (!id) throw new Error(`Command not found in target program: ${stringifyCommand(c)}`);
 		if (!commandsById.has(id)) commandsById.set(id, c);
 		return id;
 	}).join(idLength > 1 ? " " : "");
 	return Array.from(commandsById, ([id, c]) => "` " + id + " " + stringifyCommand(c)).join("\n") + "\n\n` " + commandsText;
+}
+
+
+
+function renderCommandInfo({ elem, code, commands, commandIndices, data, commandLength }) {
+	const commandIdsByParams = new Map();
 	
-	function getParams(c) {
-		if (c.halt) return "halt";
-		const copies = [];
-		for (const copy of c.copies) {
-			const prevCopy = copies[copies.length - 1];
-			if (prevCopy?.distance === copy.distance) {
-				copies[copies.length - 1] = {length: prevCopy.length + copy.length, distance: copy.distance};
-				continue;
-			}
-			copies.push(copy);
+	if (code) {
+		for (const c of parseKwert(code)) {
+			if (c.autoId) continue;
+			const params = getParamsKey(c);
+			if (!commandIdsByParams.has(params)) commandIdsByParams.set(params, c.id);
 		}
-		return copies.map(copy => [copy.length, copy.distance]).flat().join("_") + "_" + c.skip;
+	}
+	
+	const processedCommands = new Set();
+	
+	for (const [i, c] of commands.entries()) {
+		const params = getParamsKey(c);
+		if (processedCommands.has(params)) continue;
+		processedCommands.add(params);
+		if (processedCommands.size > 1) elem.insertAdjacentHTML("beforeend", "<br>");
+		const commandText = commandIdsByParams.get(params) ?? stringifyCommand(c);
+		const bytes = data.subarray(commandIndices[i], commandIndices[i] + commandLength);
+		const nameElem = document.createElement("span");
+		nameElem.classList.add("preciseText");
+		nameElem.textContent = commandText;
+		elem.appendChild(nameElem);
+		const bytesElem = document.createElement("div");
+		bytesElem.classList.add("preciseTextBox");
+		bytesElem.classList.add("commandInfoData");
+		bytesElem.textContent = Array.from(bytes, v => stringifyByte(v)).join(" ");
+		elem.appendChild(bytesElem);
 	}
 }
 

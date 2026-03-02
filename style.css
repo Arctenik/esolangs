@@ -64,6 +64,12 @@ input[type=number] {
 	color: #e00;
 }
 
+.preciseText {
+	white-space: pre;
+	font-family: monospace;
+	font-size: 1rem;
+}
+
 .preciseTextBox {
 	border: 1px solid lightgray;
     padding: 0.5em;

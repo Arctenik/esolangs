@@ -68,6 +68,7 @@ function parseKwert(code) { // uses the same object for commands with the same p
 		if (command === HALT_COMMAND) continue;
 		command.id = getNextId();
 		commandsById[command.id] = command;
+		command.autoId = true;
 	}
 	
 	if (idlessCommands.has(HALT_COMMAND)) {
@@ -78,6 +79,7 @@ function parseKwert(code) { // uses the same object for commands with the same p
 			HALT_COMMAND.id = defaultHaltId;
 		}
 		commandsById[HALT_COMMAND.id] = HALT_COMMAND;
+		HALT_COMMAND.autoId = true;
 	}
 	
 	if (idString && idString.length > idLength) {
