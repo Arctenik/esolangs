@@ -3,17 +3,42 @@ import { colorGraph } from "./graph-coloring.mjs";
 
 const programInp = document.getElementById("programInp");
 const compileButton = document.getElementById("compileButton");
+const compileStatusElem = document.getElementById("compileStatusElem");
 const resultElem = document.getElementById("resultElem");
 
 compileButton.addEventListener("click", async () => {
   try {
     const code = programInp.value;
-    resultElem.textContent = compileAlkmini(parseAlkmini(code));
+    const { code: resultCode, commandCollisionGroups } = compileAlkmini(parseAlkmini(code));
+    resultElem.textContent = resultCode;
+    if (commandCollisionGroups.length) {
+      const groupTextParts = commandCollisionGroups.map(g => "(" + g.join(" ") + ")");
+      showCompileError(
+        `Warning: The generated Kwert program is not valid, as there ${
+          commandCollisionGroups.length === 1 ? "is a set" : "are sets"
+        } of identical commands ${
+          groupTextParts.length > 2
+          ? groupTextParts.slice(0, groupTextParts.length - 1).join(", ") + ", and " + groupTextParts[groupTextParts.length - 1]
+          : groupTextParts.join(" and ")
+        }`
+      );
+    } else {
+      hideCompileStatus();
+    }
   } catch (e) {
     console.error(e);
-    alert(e);
+    showCompileError(e);
   }
 });
+
+function showCompileError(message) {
+  compileStatusElem.textContent = message;
+  compileStatusElem.classList.add("error");
+}
+
+function hideCompileStatus() {
+  compileStatusElem.classList.remove("error");
+}
 
 resultElem.addEventListener("dblclick", () => {
   const selection = window.getSelection();
@@ -100,24 +125,14 @@ function compileAlkmini(program) {
 function makeKwertCode(info) {
   const idSize = Math.max(BASE_COMMAND_NAME_SIZE, 2 + info.program.symbolLength);
   
-  const definedIds = new Set();
-  
-  let definitionsCode = "";
-  let commandsCode = "` ";
-  let needsSpace = false;
+  const processedIds = new Set();
+  const commandsByCode = new Map();
   
   for (const command of info.initialState) {
-    if (command.type === "separator") {
-      commandsCode += command.size === "small" ? "   " : "\n` ";
-      needsSpace = false;
-      continue;
-    }
-    if (needsSpace) commandsCode += " ";
+    if (command.type === "separator") continue;
     const id = getId(command);
-    commandsCode += id;
-    needsSpace = true;
-    if (!definedIds.has(id)) {
-      definedIds.add(id);
+    if (!processedIds.has(id)) {
+      processedIds.add(id);
       const def =
         command.type === "symbol"
         ? info.symbolCommandDefs.get(command.symbol)
@@ -131,16 +146,60 @@ function makeKwertCode(info) {
         const copiesCode = (def.copies ?? []).map(c => `${c.length} ${c.distance}`).join(", ");
         commandCode = `[${copiesCode}${def.skip ? "; " + def.skip : ""}]`;
       }
-      definitionsCode += `\` ${id} ${commandCode}\n`;
+      if (!commandsByCode.has(commandCode)) commandsByCode.set(commandCode, []);
+      commandsByCode.get(commandCode).push({ command, id });
     }
   };
   
-  return definitionsCode + "\n" + commandsCode + "\n";
+  const commandCodeById = new Map();
+  const commandCollisionGroups = [];
+  const idReplacements = new Map();
+  
+  for (const [code, commands] of commandsByCode) {
+    if (commands.length > 1) {
+      if (commands.every(({ command }) => command.type === "intermediateSymbol")) {
+        const newId = getId(commands[0].command, "+");
+        commandCodeById.set(newId, code);
+        for (const { id } of commands) {
+          idReplacements.set(id, newId);
+        }
+        continue;
+      } else {
+        commandCollisionGroups.push(commands.map(({ id }) => id));
+      }
+    }
+    for (const { id } of commands) {
+      commandCodeById.set(id, code);
+    }
+  }
+  
+  const definitionsCode = Array.from(commandCodeById, ([id, code]) => `\` ${id} ${code}`).join("\n");
+  
+  let commandsCode = "` ";
+  let needsSpace = false;
+  
+  for (const command of info.initialState) {
+    if (command.type === "separator") {
+      commandsCode += command.size === "small" ? "   " : "\n` ";
+      needsSpace = false;
+      continue;
+    }
+    if (needsSpace) commandsCode += " ";
+    let id = getId(command);
+    if (idReplacements.has(id)) id = idReplacements.get(id);
+    commandsCode += id;
+    needsSpace = true;
+  };
+  
+  return {
+    code: definitionsCode + "\n\n" + commandsCode + "\n",
+    commandCollisionGroups
+  };
   
   
-  function getId(command) {
-    if (command.type === "symbol") return "s_" + command.symbol.padStart(idSize - 2, "_");
-    if (command.type === "intermediateSymbol") return "i_" + command.symbol.padStart(idSize - 2, "_");
+  function getId(command, symbolSep = "_") {
+    if (command.type === "symbol") return "s" + symbolSep + command.symbol.padStart(idSize - 2, "_");
+    if (command.type === "intermediateSymbol") return "i" + symbolSep + command.symbol.padStart(idSize - 2, "_");
     const baseName = command.name ?? command.getName(idSize);
     return baseName.padEnd(idSize, "_");
   }

@@ -8,6 +8,15 @@
     <link rel="icon" href="../../icon.png">
     
     <link rel="stylesheet" href="../../style.css">
+    
+    <style>
+      #compileStatusElem {
+        margin-left: 0.5em;
+      }
+      #compileStatusElem:not(.error) {
+        display: none;
+      }
+    </style>
   </head>
   
   <body>
@@ -25,6 +34,7 @@
         <textarea id="programInp"></textarea>
         <br><br>
         <button id="compileButton">Compile</button>
+        <span id="compileStatusElem"></span>
       </div>
       
       <div>
