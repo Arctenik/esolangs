@@ -24,30 +24,32 @@ resultElem.addEventListener("dblclick", () => {
 });
 
 
-const NOOP_COMMAND = { type: "noOp" };
+const BASE_COMMAND_NAME_SIZE = 5;
+
+const NOOP_COMMAND = { type: "noOp", name: "noop" };
 const TRANSFERRED_HALT_COMMAND = { type: "transferredHalt" };
-const EMPTY_INTER_SYMBOL_COMMAND = { type: "emptyIntermediateSymbol" };
-const TWO_SKIPPER_COMMAND = { type: "twoSkipper" };
-const THREE_SKIPPER_COMMAND = { type: "threeSkipper" };
-const TRANS_PRE_SKIP_COMMAND = { type: "transitionPreSkipper" };
-const TRANS_SKIPPER_COMMAND = { type: "transitionSkipper" };
-const CATALOG_GEN_COMMAND = { type: "catalogGenerator" };
-const PADDING_PRE_GEN_COMMAND = { type: "paddingPreGenerator" };
-const SYMBOL_SKIPPER_COMMAND = { type: "symbolSkipper" };
-const PHASE_ONE_HANDLER_COMMAND = { type: "phaseOneHandler" };
-const PHASE_TWO_HANDLER_COMMAND = { type: "phaseTwoHandler" };
-const PHASE_THREE_HANDLER_COMMAND = { type: "phaseThreeHandler" };
-const PHASE_FOUR_HANDLER_COMMAND = { type: "phaseFourHandler" };
-const PHASE_FIVE_HANDLER_COMMAND = { type: "phaseFiveHandler" };
-const BEGINNING_PADDING_PRE_COMMAND = { type: "beginningPaddingPreGenerator" };
-const BEGINNING_CATALOG_GEN_COMMAND = { type: "beginningCatalogGenerator" };
-const INTER_PADDING_PRE_COMMAND = { type: "intermediatePaddingPreGenerator" };
-const INTER_CATALOG_GEN_COMMAND = { type: "intermediateCatalogGenerator" };
-const NOOP_PRESERVER_COMMAND = { type: "noOpPreserver" };
-const PADDING_GEN_COMMAND = { type: "paddingGenerator" };
-const HALT_SKIPPER_COMMAND = { type: "haltSkipper" };
-const BEGINNING_SKIPPER_COMMAND = { type: "beginningSkipper" };
-const HALT_COMMAND = { type: "halt" };
+const EMPTY_INTER_SYMBOL_COMMAND = { type: "emptyIntermediateSymbol", name: "eisym" };
+const TWO_SKIPPER_COMMAND = { type: "twoSkipper", name: "2skip" };
+const THREE_SKIPPER_COMMAND = { type: "threeSkipper", name: "3skip" };
+const TRANS_PRE_SKIP_COMMAND = { type: "transitionPreSkipper", name: "tpskp" };
+const TRANS_SKIPPER_COMMAND = { type: "transitionSkipper", name: "tskip" };
+const CATALOG_GEN_COMMAND = { type: "catalogGenerator", name: "catgn" };
+const PADDING_PRE_GEN_COMMAND = { type: "paddingPreGenerator", name: "padpg" };
+const SYMBOL_SKIPPER_COMMAND = { type: "symbolSkipper", name: "smskp" };
+const PHASE_ONE_HANDLER_COMMAND = { type: "phaseOneHandler", name: "phas1" };
+const PHASE_TWO_HANDLER_COMMAND = { type: "phaseTwoHandler", name: "phas2" };
+const PHASE_THREE_HANDLER_COMMAND = { type: "phaseThreeHandler", name: "phas3" };
+const PHASE_FOUR_HANDLER_COMMAND = { type: "phaseFourHandler", name: "phas4" };
+const PHASE_FIVE_HANDLER_COMMAND = { type: "phaseFiveHandler", name: "phas5" };
+const BEGINNING_PADDING_PRE_COMMAND = { type: "beginningPaddingPreGenerator", name: "bppgn" };
+const BEGINNING_CATALOG_GEN_COMMAND = { type: "beginningCatalogGenerator", name: "bctgn" };
+const INTER_PADDING_PRE_COMMAND = { type: "intermediatePaddingPreGenerator", name: "ippgn" };
+const INTER_CATALOG_GEN_COMMAND = { type: "intermediateCatalogGenerator", name: "ictgn" };
+const NOOP_PRESERVER_COMMAND = { type: "noOpPreserver", name: "noppr" };
+const PADDING_GEN_COMMAND = { type: "paddingGenerator", name: "padgn" };
+const HALT_SKIPPER_COMMAND = { type: "haltSkipper", name: "hskip" };
+const BEGINNING_SKIPPER_COMMAND = { type: "beginningSkipper", name: "bskip" };
+const HALT_COMMAND = { type: "halt", getName: size => "$".repeat(size) };
 
 function compileAlkmini(program) {
   const info = { program };
@@ -91,6 +93,57 @@ function compileAlkmini(program) {
   
   console.log(info);
   console.log(getPhase2CellSize(info), getPhase4CellSize(info), getPhase5CellSize(info));
+  
+  return makeKwertCode(info);
+}
+
+function makeKwertCode(info) {
+  const idSize = Math.max(BASE_COMMAND_NAME_SIZE, 2 + info.program.symbolLength);
+  
+  const definedIds = new Set();
+  
+  let definitionsCode = "";
+  let commandsCode = "";
+  let needsSpace = false;
+  
+  for (const command of info.initialState) {
+    if (command.type === "separator") {
+      commandsCode += command.size === "small" ? "   " : "\n";
+      needsSpace = false;
+      continue;
+    }
+    if (needsSpace) commandsCode += " ";
+    const id = getId(command);
+    commandsCode += id;
+    needsSpace = true;
+    if (!definedIds.has(id)) {
+      definedIds.add(id);
+      const def =
+        command.type === "symbol"
+        ? info.symbolCommandDefs.get(command.symbol)
+        : command.type === "intermediateSymbol"
+        ? info.interSymbolCommandDefs.get(command.symbol)
+        : info.otherCommandDefs.get(command.type);
+      let commandCode;
+      if (def.halt) {
+        commandCode = "[$]";
+      } else {
+        const copiesCode = (def.copies ?? []).map(c => `${c.length} ${c.distance}`).join(", ");
+        commandCode = `[${copiesCode}${def.skip ? "; " + def.skip : ""}]`;
+      }
+      definitionsCode += `\` ${id} ${commandCode}\n`;
+    }
+  };
+  
+  return definitionsCode + "\n" + commandsCode + "\n";
+  
+  
+  function getId(command) {
+    if (command.type === "symbol") return "s_" + command.symbol.padStart(idSize - 2, "_");
+    if (command.type === "intermediateSymbol") return "i_" + command.symbol.padStart(idSize - 2, "_");
+    const baseName = command.name ?? command.getName(idSize);
+    return baseName.padEnd(idSize, "_");
+  }
 }
 
 function makeInitialProgramState(info) {
@@ -98,18 +151,22 @@ function makeInitialProgramState(info) {
     BEGINNING_SKIPPER_COMMAND,
     BEGINNING_SKIPPER_COMMAND,
     ...info.beginningData,
+    { type: "separator", size: "large" },
     PHASE_ONE_HANDLER_COMMAND,
     BEGINNING_PADDING_PRE_COMMAND,
     ...arrayOfN(BEGINNING_CATALOG_GEN_COMMAND, info.catalogGenCount),
+    { type: "separator", size: "large" },
     ...(
-      info.program.data.map(symbol => {
+      info.program.data.map((symbol, i) => {
         return [
+          ...(i ? [ {type: "separator", size: "small" }] : []),
           makeSymbolCommand(symbol),
           PADDING_PRE_GEN_COMMAND,
           ...arrayOfN(CATALOG_GEN_COMMAND, info.catalogGenCount),
         ];
       }).flat()
     ),
+    { type: "separator", size: "large" },
     HALT_SKIPPER_COMMAND,
     HALT_COMMAND,
   ];
