@@ -306,24 +306,206 @@ function renderCommandInfo({ elem, code, commands, commandIndices, data, command
 		}
 	}
 	
+	const dataByCommand = new Map();
 	const processedCommands = new Set();
 	
 	for (const [i, c] of commands.entries()) {
 		const params = getParamsKey(c);
 		if (processedCommands.has(params)) continue;
 		processedCommands.add(params);
-		if (processedCommands.size > 1) elem.insertAdjacentHTML("beforeend", "<br>");
 		const commandText = commandIdsByParams.get(params) ?? stringifyCommand(c);
 		const bytes = data.subarray(commandIndices[i], commandIndices[i] + commandLength);
-		const nameElem = document.createElement("span");
-		nameElem.classList.add("preciseText");
-		nameElem.textContent = commandText;
-		elem.appendChild(nameElem);
+		dataByCommand.set(commandText, bytes);
+	}
+	
+	const {commandsInStart, commandsInEnd, identicalCommands, sequences} =
+		findCommandCollisions(
+			dataByCommand,
+			data.subarray(0, commandIndices[0]),
+			data.subarray(commandIndices[commandIndices.length - 1] + commandLength),
+			commandLength
+		);
+	
+	const collisionItems = [
+		...commandsInStart.map(command => contentFunc`Command ${preciseText(command)} appears in beginning data`),
+		...commandsInEnd.map(command => contentFunc`Command ${preciseText(command)} appears in ending data`),
+		...identicalCommands.map(([a, b]) => contentFunc`Command ${preciseText(a)} is identical to command ${preciseText(b)}`),
+		...sequences.map(({command, items}) => {
+			const [a, b] = 
+				items.map(
+					item =>
+						item.type === "start"
+						? "beginning data"
+						: item.type === "end"
+						? "ending data"
+						: contentFunc`command ${preciseText(item.command)}`
+				);
+			return contentFunc`Command ${preciseText(command)} appears in sequence of ${a} and ${b}`;
+		})
+	];
+	
+	if (collisionItems.length === 0) {
+		elem.insertAdjacentText("beforeend", "No byte sequence collisions detected");
+	} else if (collisionItems.length === 1) {
+		elem.insertAdjacentText("beforeend", "Found a byte sequence collision: ");
+		collisionItems[0](elem);
+	} else {
+		elem.insertAdjacentText("beforeend", `Found ${collisionItems.length} byte sequence collisions:`);
+		const listElem = document.createElement("ul");
+		elem.appendChild(listElem);
+		for (const item of collisionItems) {
+			const itemElem = document.createElement("li");
+			listElem.appendChild(itemElem);
+			item(itemElem);
+		}
+	}
+	
+	elem.insertAdjacentHTML("beforeend", "<br>");
+	
+	for (const [commandText, bytes] of dataByCommand) {
+		elem.insertAdjacentHTML("beforeend", "<br>");
+		elem.appendChild(preciseText(commandText));
 		const bytesElem = document.createElement("div");
 		bytesElem.classList.add("preciseTextBox");
 		bytesElem.classList.add("commandInfoData");
 		bytesElem.textContent = Array.from(bytes, v => stringifyByte(v)).join(" ");
 		elem.appendChild(bytesElem);
+	}
+	
+	
+	function contentFunc(strings, ...subs) {
+		const items = [];
+		for (const [i, s] of strings.entries()) {
+			items.push(s);
+			if (i < subs.length) items.push(subs[i]);
+		}
+		return e => {
+			for (const item of items) {
+				if (item instanceof HTMLElement) {
+					e.appendChild(item);
+				} else if (typeof item === "function") {
+					item(e);
+				} else {
+					e.insertAdjacentText("beforeend", String(item));
+				}
+			}
+		};
+	}
+	
+	function preciseText(content) {
+		const e = document.createElement("span");
+		e.classList.add("preciseText");
+		e.textContent = content;
+		return e;
+	}
+}
+
+function findCommandCollisions(dataByCommand, startData, endData, commandLength) {
+	const valueIndicesByCommand = new Map(
+		Array.from(dataByCommand, ([command, data]) => {
+			const indices = new Map();
+			for (const [i, val] of data.entries()) {
+				if (!indices.has(val)) indices.set(val, []);
+				indices.get(val).push(i);
+			}
+			return [command, indices];
+		})
+	);
+	const edgeStartValueIndices = new Map();
+	const otherStartValueIndices = new Map();
+	for (const [i, val] of startData.entries()) {
+		const indices = i <= startData.length - commandLength ? otherStartValueIndices : edgeStartValueIndices;
+		if (!indices.has(val)) indices.set(val, []);
+		indices.get(val).push(i);
+	}
+	const endValueIndices = new Map();
+	for (const [i, val] of endData.entries()) {
+		if (!endValueIndices.has(val)) endValueIndices.set(val, []);
+		endValueIndices.get(val).push(i);
+	}
+	
+	const affixesByCommand = new Map(Array.from(dataByCommand.keys(), command => [command, []]));
+	
+	for (const [command, data] of dataByCommand) {
+		const affixes = affixesByCommand.get(command);
+		
+		for (const [otherCommand, indices] of valueIndicesByCommand) {
+			if (otherCommand === command) continue;
+			const otherData = dataByCommand.get(otherCommand);
+			const otherAffixes = affixesByCommand.get(otherCommand);
+			for (const length of iterPrefixLengths(data, otherData, indices)) {
+				affixes.push({type: "prefix", inType: "command", in: otherCommand, length});
+				if (length !== commandLength) // since it's a complete overlap, this should be caught in the other direction
+					otherAffixes.push({type: "suffix", inType: "command", in: command, length});
+			}
+		}
+		
+		for (const length of iterPrefixLengths(data, startData, edgeStartValueIndices)) {
+			affixes.push({type: "prefix", inType: "start", length});
+		}
+		
+		for (const length of iterPrefixLengths(data, startData, otherStartValueIndices)) {
+			if (length === commandLength) {
+				affixes.push({type: "prefix", inType: "start", length});
+				break;
+			}
+		}
+		
+		for (const length of iterPrefixLengths(endData, data, valueIndicesByCommand.get(command) ?? [])) {
+			if (length === commandLength) continue;
+			affixes.push({type: "suffix", inType: "end", length});
+		}
+		
+		for (const length of iterPrefixLengths(data, endData, endValueIndices)) {
+			affixes.push({type: "prefix", inType: "end", length});
+		}
+	}
+	
+	const commandsInStart = [];
+	const commandsInEnd = [];
+	const identicalCommands = [];
+	const sequences = [];
+	
+	for (const [command, affixes] of affixesByCommand) {
+		for (const affix of affixes) {
+			if (affix.length === commandLength) {
+				if (affix.inType === "start") commandsInStart.push(command);
+				else if (affix.inType === "end") commandsInEnd.push(command);
+				else identicalCommands.push([command, affix.in]);
+			} else {
+				if (affix.type !== "prefix") continue;
+				if (affix.inType === "end") continue;
+				const matchingLength = commandLength - affix.length;
+				const matchingSuffixes = affixes.filter(af => af.type === "suffix" && af.length === matchingLength);
+				for (const suffix of matchingSuffixes) {
+					if (suffix.inType === "start") continue;
+					if (affix.inType === "start" && suffix.inType === "end") continue;
+					sequences.push({
+						command,
+						items: [affix, suffix].map(
+							af => af.inType === "command"
+							  ? {type: "command", command: af.in}
+							  : {type: af.inType}
+						)
+					});
+				}
+			}
+		}
+	}
+	
+	return {commandsInStart, commandsInEnd, identicalCommands, sequences};
+	
+	
+	function* iterPrefixLengths(ofData, inData, atIndicesFrom) {
+		const atIndices = atIndicesFrom.get(ofData[0]);
+		if (!atIndices) return;
+		startLoop:
+		for (const startIndex of atIndices) {
+			for (let i = 1, j = startIndex + 1; i < ofData.length && j < inData.length; i++, j++) {
+				if (ofData[i] !== inData[j]) continue startLoop;
+			}
+			yield Math.min(ofData.length, inData.length - startIndex);
+		}
 	}
 }
 
