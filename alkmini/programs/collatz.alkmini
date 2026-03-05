@@ -1,3 +1,11 @@
+# calculates collatz total stopping time by cycling through a unary number,
+# switching between a floored-divide-by-two operation and a multiply-by-three-
+# and-add-two operation
+# (this is not the standard way of expressing the function, but it allows
+# division to be done *while* determining parity)
+
+# symbols representing the current operation
+# (division and multiplication phases, and details within each phase)
 d'0 :: []
 d'1 :: []
 dd0 :: []
@@ -8,6 +16,8 @@ mm1 :: []
 mm+ :: []
 mm. :: []
 
+# "stationary" data representing the current number
+# the number is represented in unary via the digit 1, with 0 terminating it
 1__ [
   d'0 : d'1
   d'1 : dd0 __1
@@ -32,6 +42,7 @@ mm. :: []
   1__ : 0__
 ]
 
+# right-moving data, used to send a digit from the left edge across the stationary data
 __0 [
   d'0 : d'0
   mmm : mmm
@@ -44,6 +55,7 @@ __1 [
   __1 : __1
 ]
 
+# symbols representing a digit moving right past a stationary digit
 1_1 [
   dd0 : dd0 1__
   mmm : mmm 1__
@@ -70,6 +82,7 @@ __1 [
   1_1 : 0_1
 ]
 
+# symbols that handle creating the output symbols
 %%% [
   0__ : %%%
   1__ : %%%
@@ -81,6 +94,7 @@ __1 [
   1__ : %%% RRR
 ]
 
+# output symbol
 RRR :: [RRR]
 
 
