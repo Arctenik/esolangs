@@ -335,7 +335,8 @@ function makeOtherCommandDefs(info) {
       index += addCopy(makeBeginningCopyOf(INTER_CATALOG_GEN_COMMAND, info, index));
       index += addCopy(info.interCatalogGenCount - 1, 1);
       index += addCopy(makeBeginningCopyOf(EMPTY_INTER_SYMBOL_COMMAND, info, index));
-      index += addCopy(info.maxOutputSymbols - 1, 1);
+      if (info.maxOutputSymbols > 1)
+        index += addCopy(info.maxOutputSymbols - 1, 1);
     })
   );
   
