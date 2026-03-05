@@ -149,7 +149,7 @@ export function parseKmidlike(code, config) {
   
   function expectChar(c) {
     if (i >= code.length) badEnd();
-    if (c && !(Array.isArray(c) ? c.includes(code[i]) : code[i] === c)) badChar();
+    if (c && !(Array.isArray(c) ? c.includes(code[i]) : code[i] === c)) badChar(code[i]);
   }
   
   function badChar(c) {
