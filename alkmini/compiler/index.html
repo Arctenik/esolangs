@@ -31,7 +31,10 @@
         the number of Kwert cycles evaluated is any multiple of 5, and then look for sequences
         consisting of a symbol command (<span class="preciseText">s_&lt;symbol name&gt;</span>, with
         some number of underscores) followed by a padding pre-generator command
-        (<span class="preciseText">padpg</span>, potentially with trailing underscores).
+        (<span class="preciseText">padpg</span>, potentially with trailing underscores). This will be
+        followed by some number of catalog generator &mdash; <span class="preciseText">catgn</span> etc &mdash;
+        commands, which are required for the symbol to function, but are not necessary for identification.
+        The whole symbols can be seen separated by extra spaces in the compiler output.
       </div>
       
       <div>
